@@ -6,157 +6,171 @@
     <title>WHRS FRMS Calculator</title>
     <link rel="apple-touch-icon" href="icon.png">
     <style>
-        /* --- DESIGN STYLES --- */
-        body { 
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; 
-            background-color: #f0f2f5; 
-            margin: 0; 
-            padding: 20px; 
-            color: #333; 
+        /* --- CSS VARIABLES FOR THEMES --- */
+        :root {
+            --bg-color: #f0f2f5;
+            --text-color: #333;
+            --card-bg: white;
+            --header-text: #0056b3;
+            --border-color: #e9ecef;
+            --input-bg: #fff;
+            --input-border: #ccc;
+            --input-text: #000;
+            --accent-color: #007bff;
+            --result-bg: #e8f5e9;
+            --result-text: #1b5e20;
+            --result-border: #c8e6c9;
+        }
+        body.dark-mode {
+            --bg-color: #121212;
+            --text-color: #e0e0e0;
+            --card-bg: #1e1e1e;
+            --header-text: #6ea8fe;
+            --border-color: #333;
+            --input-bg: #2c2c2e;
+            --input-border: #555;
+            --input-text: #fff;
+            --accent-color: #0d6efd;
+            --result-bg: #0f2912;
+            --result-text: #a5d6a7;
+            --result-border: #2e7d32;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--bg-color);
+            margin: 0;
+            padding: 20px;
+            color: var(--text-color);
+            transition: all 0.3s ease;
         }
         .container { max-width: 800px; margin: 0 auto; }
-       
-        /* Header */
-        .header { 
-            display: flex; 
-            justify-content: space-between; 
-            align-items: center; 
-            margin-bottom: 20px; 
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
         }
-        .status { 
-            color: #28a745; 
-            font-weight: bold; 
-            font-size: 0.9rem; 
+        .status { color: #28a745; font-weight: bold; font-size: 0.9rem; }
+
+        .card {
+            background: var(--card-bg);
+            padding: 25px;
+            border-radius: 12px;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
         }
-       
-        /* Cards */
-        .card { 
-            background: white; 
-            padding: 25px; 
-            border-radius: 12px; 
-            margin-bottom: 20px; 
-            box-shadow: 0 4px 6px rgba(0,0,0,0.05); 
+        h2 {
+            margin-top: 0;
+            color: var(--header-text);
+            border-bottom: 2px solid var(--border-color);
+            padding-bottom: 10px;
+            font-size: 1.1rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
         }
-        h2 { 
-            margin-top: 0; 
-            color: #0056b3; 
-            border-bottom: 2px solid #e9ecef; 
-            padding-bottom: 10px; 
-            font-size: 1.1rem; 
-            text-transform: uppercase; 
-            letter-spacing: 1px; 
+
+        label {
+            display: block;
+            font-weight: bold;
+            margin: 15px 0 5px;
+            color: var(--text-color);
+            opacity: 0.9;
         }
-       
-        /* Inputs */
-        label { 
-            display: block; 
-            font-weight: bold; 
-            margin-top: 15px; 
-            margin-bottom: 5px; 
-            color: #555; 
-        }
-        input[type="time"] { 
-            padding: 12px; 
-            font-size: 16px; 
-            width: 100%; 
-            box-sizing: border-box; 
-            border: 1px solid #ccc; 
-            border-radius: 8px; 
-            background: #fff; 
-        }
-        .time-row {
-            display: flex; 
-            gap: 20px; 
-        }
-        .time-row > div { 
-            flex: 1; 
-        }
-       
-        /* Compact Base Buttons */
-        .base-buttons {
+
+        .button-group {
             display: flex;
             gap: 12px;
             margin-top: 10px;
             flex-wrap: wrap;
         }
-        .base-btn {
+        .btn-toggle {
             flex: 1;
             min-width: 120px;
-            padding: 14px 20px;
+            padding: 14px;
             font-size: 16px;
             font-weight: 600;
             text-align: center;
-            background: #f8f9fa;
-            border: 2px solid #dee2e6;
+            background: var(--input-bg);
+            border: 2px solid var(--input-border);
+            color: var(--text-color);
             border-radius: 10px;
             cursor: pointer;
-            transition: all 0.2s ease;
+            transition: all 0.2s;
         }
-        .base-btn:hover {
-            background: #e9ecef;
-            border-color: #adb5bd;
-        }
-        .base-btn.active {
-            background: #007bff;
+        .btn-toggle:hover { border-color: var(--accent-color); }
+        .btn-toggle.active {
+            background: var(--accent-color);
             color: white;
-            border-color: #007bff;
+            border-color: var(--accent-color);
         }
-       
-        /* Checkbox */
-        .checkbox-container { 
-            background: #f8f9fa; 
-            padding: 15px; 
-            border-radius: 8px; 
-            margin-top: 20px; 
-            border: 1px solid #e9ecef; 
+
+        .time-row {
+            display: flex;
+            gap: 20px;
+            flex-wrap: wrap;
         }
-        .checkbox-label { 
-            display: flex; 
-            align-items: center; 
-            cursor: pointer; 
-            margin: 0; 
+        .time-row > div { flex: 1; min-width: 280px; }
+
+        input[type="time"] {
+            padding: 12px;
+            font-size: 16px;
+            width: 100%;
+            box-sizing: border-box;
+            border: 1px solid var(--input-border);
+            border-radius: 8px;
+            background: var(--input-bg);
+            color: var(--input-text);
+        }
+
+        .checkbox-container {
+            background: var(--bg-color);
+            padding: 16px;
+            border-radius: 8px;
+            margin-top: 20px;
+            border: 1px solid var(--border-color);
+        }
+        .checkbox-label {
+            display: flex;
+            align-items: center;
+            cursor: pointer;
             font-weight: normal;
         }
-        input[type="checkbox"] { 
-            width: 20px; 
-            height: 20px; 
-            margin-right: 10px; 
+        input[type="checkbox"] {
+            width: 20px;
+            height: 20px;
+            margin-right: 10px;
         }
-       
-        /* Buttons */
-        .btn { 
-            background: #007bff; 
-            color: white; 
-            border: none; 
-            padding: 18px; 
-            font-size: 18px; 
-            font-weight: bold; 
-            cursor: pointer; 
-            width: 100%; 
-            border-radius: 8px; 
-            margin-top: 25px; 
-            transition: background 0.2s; 
+
+        .btn {
+            background: var(--accent-color);
+            color: white;
+            border: none;
+            padding: 18px;
+            font-size: 18px;
+            font-weight: bold;
+            cursor: pointer;
+            width: 100%;
+            border-radius: 8px;
+            margin-top: 25px;
+            transition: background 0.2s;
         }
-        .btn:hover { 
-            background: #0056b3; 
-        }
+        .btn:hover { background: #0056b3; }
         .btn-secondary {
             background: #6c757d;
             margin-top: 10px;
         }
-        .btn-secondary:hover {
-            background: #545b62;
-        }
-       
-        /* Results */
-        .result-box { 
-            background: #e8f5e9; 
-            color: #1b5e20; 
-            padding: 20px; 
-            margin-top: 15px; 
-            border-radius: 8px; 
-            display: none; 
-            border: 1px solid #c8e6c9; 
+        .btn-secondary:hover { background: #545b62; }
+
+        .result-box {
+            background: var(--result-bg);
+            color: var(--result-text);
+            padding: 24px;
+            margin-top: 15px;
+            border-radius: 8px;
+            border: 1px solid var(--result-border);
+            display: none;
         }
         .error-message {
             background: #f8d7da;
@@ -166,32 +180,38 @@
             margin-top: 15px;
             display: none;
         }
-        .result-row { 
-            display: flex; 
-            justify-content: space-between; 
-            border-bottom: 1px solid #c8e6c9; 
-            padding: 10px 0; 
-            font-size: 1.1rem; 
+        body.dark-mode .error-message {
+            background: #442b2d;
+            color: #f5c2c7;
         }
-        .result-val { 
-            font-weight: bold; 
-            font-family: monospace; 
-            font-size: 1.2rem; 
+
+        .result-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 10px 0;
+            font-size: 1.1rem;
+            border-bottom: 1px solid var(--result-border);
         }
-       
-        .main-metric { 
-            text-align: center; 
-            margin-bottom: 20px; 
-            border-bottom: 2px solid #2e7d32; 
-            padding-bottom: 15px; 
+        .result-row:last-child { border-bottom: none; }
+        .result-val {
+            font-weight: bold;
+            font-family: monospace;
+            font-size: 1.2rem;
         }
-        .metric-value { 
-            font-size: 2.5rem; 
-            font-weight: bold; 
-            display: block; 
-            margin-top: 5px; 
-            color: #2e7d32; 
+
+        .main-metric {
+            text-align: center;
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 2px solid #2e7d32;
         }
+        body.dark-mode .main-metric { border-color: #4caf50; }
+        .metric-value {
+            font-size: 2.5rem;
+            font-weight: bold;
+            color: #2e7d32;
+        }
+        body.dark-mode .metric-value { color: #4caf50; }
         .metric-note {
             font-size: 0.9rem;
             font-weight: bold;
@@ -213,21 +233,27 @@
 
     <div class="card">
         <h2>1. Shift Details</h2>
-       
+
         <label>Operating Base</label>
-        <div class="base-buttons">
-            <button type="button" class="base-btn" data-value="belmont">Belmont</button>
-            <button type="button" class="base-btn" data-value="lismore">Lismore</button>
-            <button type="button" class="base-btn" data-value="tamworth">Tamworth</button>
+        <div class="button-group">
+            <button type="button" class="btn-toggle base-btn" data-value="belmont">Belmont</button>
+            <button type="button" class="btn-toggle base-btn" data-value="lismore">Lismore</button>
+            <button type="button" class="btn-toggle base-btn" data-value="tamworth">Tamworth</button>
+        </div>
+
+        <label>Actual Shift Type</label>
+        <div class="button-group">
+            <button type="button" class="btn-toggle shift-btn active" data-shift="day">Day Shift</button>
+            <button type="button" class="btn-toggle shift-btn" data-shift="night">Night Shift</button>
         </div>
 
         <div class="time-row">
             <div>
-                <label for="start">FDP Start Time</label>
+                <label for="start">FDP Commenced</label>
                 <input type="time" id="start" required>
             </div>
             <div>
-                <label for="end">FDP End Time</label>
+                <label for="end">FDP Completed</label>
                 <input type="time" id="end" required>
             </div>
         </div>
@@ -235,7 +261,7 @@
 
     <div class="card">
         <h2>2. Adjustments</h2>
-        
+
         <div class="time-row">
             <div>
                 <label for="nfd">NFD (HH:mm)</label>
@@ -246,12 +272,18 @@
                 <input type="time" id="rest" value="00:00">
             </div>
         </div>
-       
+
         <div class="checkbox-container">
             <label class="checkbox-label">
                 <input type="checkbox" id="commute" checked>
                 Commute to home required?
             </label>
+        </div>
+
+        <label>Theme Preference</label>
+        <div class="button-group">
+            <button type="button" class="btn-toggle theme-btn active" data-theme="light">☀️ Light Mode</button>
+            <button type="button" class="btn-toggle theme-btn" data-theme="dark">🌙 Dark Mode</button>
         </div>
 
         <button class="btn" onclick="runLogic()">CALCULATE RESULTS</button>
@@ -260,7 +292,7 @@
 
     <div class="card">
         <h2>Calculated Results</h2>
-        
+
         <div id="errorMessage" class="error-message"></div>
 
         <div id="resultsArea" class="result-box">
@@ -269,12 +301,13 @@
                 <span id="outNext" class="metric-value">--:--</span>
                 <div id="outDay" class="metric-note"></div>
             </div>
-            <div class="result-row"><span>Max FDP (Table):</span> <span id="outMax" class="result-val">--</span></div>
-            <div class="result-row"><span>FDP Limit (HH:mm):</span> <span id="outLimit" class="result-val">--</span></div>
-            <div class="result-row"><span>Exceedance:</span> <span id="outExc" class="result-val">--</span></div>
-            <div class="result-row"><span>Total ODP (HH:mm):</span> <span id="outODP" class="result-val">--</span></div>
+            <div class="result-row"><span>Max FDP:</span> <span id="outMax" class="result-val">--:--</span></div>
+            <div class="result-row"><span>FDP Extended:</span> <span id="outLimit" class="result-val">--:--</span></div>
+            <div class="result-row"><span>FDP End Time:</span> <span id="outFdpEnd" class="result-val">--:--</span></div>
+            <div class="result-row"><span>Exceedance:</span> <span id="outExc" class="result-val">--:--</span></div>
+            <div class="result-row"><span>ODP (Hrs):</span> <span id="outODP" class="result-val">--:--</span></div>
         </div>
-       
+
         <div id="placeholder" class="placeholder">
             <em>Enter data above and press Calculate</em>
         </div>
@@ -283,89 +316,106 @@
 
 <script>
     const MINUTES_PER_DAY = 1440;
-    const MAX_FDP_MINUTES = 960; // 16 hours
-    const BASE_ODP_COMMUTE = 600; // 10 hours
-    const BASE_ODP_NO_COMMUTE = 480; // 8 hours
+    const MAX_FDP_MINUTES = 960;
+    const BASE_ODP_COMMUTE = 600;
+    const BASE_ODP_NO_COMMUTE = 480;
 
-    // Parse HH:mm string to minutes
-    function parseTime(str) {
-        if (!str) return 0;
-        const [h, m] = str.split(':').map(Number);
-        return isNaN(h) || isNaN(m) ? 0 : h * 60 + m;
-    }
+    // Nominal shift times (in minutes past midnight) - for internal reference only
+    const nominalShifts = {
+        belmont:  { day: { start: 420, end: 1140 }, night: { start: 1140, end: 420 + MINUTES_PER_DAY } },
+        lismore:  { day: { start: 420, end: 1140 }, night: { start: 1140, end: 420 + MINUTES_PER_DAY } },
+        tamworth: { day: { start: 480, end: 1200 }, night: { start: 1200, end: 480 + MINUTES_PER_DAY } }
+    };
 
-    // Format minutes as HH:mm (zero-padded)
-    function fmt(minutes) {
-        const h = String(Math.floor(minutes / 60)).padStart(2, '0');
-        const m = String(minutes % 60).padStart(2, '0');
+    let selectedBase = '';
+    let selectedShift = 'day';
+
+    // Helpers
+    const parseTime = (str) => str ? str.split(':').map(Number).reduce((h, m) => h * 60 + m, 0) : 0;
+    const fmt = (mins) => {
+        const h = String(Math.floor(mins / 60)).padStart(2, '0');
+        const m = String(mins % 60).padStart(2, '0');
         return `${h}:${m}`;
-    }
+    };
+    const clock = (mins) => fmt(((mins % MINUTES_PER_DAY) + MINUTES_PER_DAY) % MINUTES_PER_DAY);
 
-    // Format minutes as clock time (mod 24h)
-    function fmtClock(minutes) {
-        const total = ((minutes % MINUTES_PER_DAY) + MINUTES_PER_DAY) % MINUTES_PER_DAY;
-        return fmt(total);
-    }
+    // Base selection
+    document.querySelectorAll('.base-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            document.querySelectorAll('.base-btn').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            selectedBase = btn.dataset.value;
+        });
+    });
 
-    function showError(message) {
-        document.getElementById('errorMessage').textContent = message;
+    // Shift type selection
+    document.querySelectorAll('.shift-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            document.querySelectorAll('.shift-btn').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            selectedShift = btn.dataset.shift;
+        });
+    });
+
+    // Theme toggle
+    document.querySelectorAll('.theme-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            document.querySelectorAll('.theme-btn').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            document.body.classList.toggle('dark-mode', btn.dataset.theme === 'dark');
+        });
+    });
+
+    function showError(msg) {
+        document.getElementById('errorMessage').textContent = msg;
         document.getElementById('errorMessage').style.display = 'block';
         document.getElementById('resultsArea').style.display = 'none';
         document.getElementById('placeholder').style.display = 'none';
     }
 
-    function clearError() {
-        document.getElementById('errorMessage').style.display = 'none';
-    }
-
     function resetForm() {
-        document.querySelectorAll('.base-btn').forEach(btn => btn.classList.remove('active'));
+        document.querySelectorAll('.base-btn, .shift-btn').forEach(b => b.classList.remove('active'));
+        document.querySelector('.shift-btn[data-shift="day"]').classList.add('active');
+        document.querySelector('.theme-btn[data-theme="light"]').classList.add('active');
+        document.body.classList.remove('dark-mode');
+
         document.getElementById('start').value = '';
         document.getElementById('end').value = '';
         document.getElementById('nfd').value = '00:00';
         document.getElementById('rest').value = '00:00';
         document.getElementById('commute').checked = true;
+
         document.getElementById('resultsArea').style.display = 'none';
         document.getElementById('placeholder').style.display = 'block';
-        clearError();
+        document.getElementById('errorMessage').style.display = 'none';
+
+        selectedBase = '';
+        selectedShift = 'day';
     }
 
-    // Handle base button clicks
-    document.querySelectorAll('.base-btn').forEach(btn => {
-        btn.addEventListener('click', function() {
-            document.querySelectorAll('.base-btn').forEach(b => b.classList.remove('active'));
-            this.classList.add('active');
-        });
-    });
-
     function runLogic() {
-        clearError();
-        
-        // Get selected base
-        const activeBtn = document.querySelector('.base-btn.active');
-        const base = activeBtn ? activeBtn.getAttribute('data-value') : '';
+        document.getElementById('errorMessage').style.display = 'none';
+
+        const baseBtn = document.querySelector('.base-btn.active');
+        const base = baseBtn ? baseBtn.dataset.value : '';
 
         const startVal = document.getElementById('start').value;
         const endVal = document.getElementById('end').value;
-        const nfdVal = document.getElementById('nfd').value;
-        const restVal = document.getElementById('rest').value;
-        const commute = document.getElementById('commute').checked;
 
         if (!base || !startVal || !endVal) {
-            showError("Please select a Base and fill in FDP Start Time and FDP End Time.");
+            showError("Please select a Base and fill in FDP Commenced and FDP Completed.");
             return;
         }
 
         const start = parseTime(startVal);
         const end = parseTime(endVal);
-        const nfd = parseTime(nfdVal);
-        const rest = parseTime(restVal);
+        const nfd = parseTime(document.getElementById('nfd').value);
+        const rest = parseTime(document.getElementById('rest').value);
+        const commute = document.getElementById('commute').checked;
 
-        // Calculate duration correctly across midnight
         let duration = end - start;
         if (duration <= 0) duration += MINUTES_PER_DAY;
 
-        // Table-based max FDP (in hours) based on start time
         let limitHours = 10;
         if (start >= 300 && start < 360) limitHours = 11;
         else if (start >= 360 && start < 420) limitHours = 11.5;
@@ -375,43 +425,35 @@
 
         const limitMinutes = limitHours * 60;
 
-        // FDP Limit calculation
         let fdpLimit = limitMinutes - nfd;
-        if (rest > 120) fdpLimit += rest;
+        if (rest >= 120) fdpLimit += rest;  // Fixed: now includes exactly 2:00
         if (fdpLimit > MAX_FDP_MINUTES) fdpLimit = MAX_FDP_MINUTES;
 
-        // Exceedance
         const exceedance = Math.max(0, duration - fdpLimit);
 
-        // ODP calculation
         const halfRest = rest / 2;
         const over12 = Math.max(0, (duration - halfRest) - 720);
         let calcODP = commute ? BASE_ODP_COMMUTE : BASE_ODP_NO_COMMUTE;
         calcODP += over12;
-
-        // Floor rule for commute
         if (commute && calcODP < BASE_ODP_COMMUTE) calcODP = BASE_ODP_COMMUTE;
 
         const penalty = Math.ceil(exceedance / 30) * 60;
         const totalODP = calcODP + penalty;
 
-        // Next start time
         const nextStart = end + totalODP;
 
-        // Update UI
-        document.getElementById('outMax').innerText = limitHours + (limitHours % 1 === 0.5 ? '.5' : '') + 'h';
-        document.getElementById('outLimit').innerText = fmt(fdpLimit);
-        document.getElementById('outExc').innerText = exceedance + ' mins';
-        document.getElementById('outODP').innerText = fmt(totalODP);
-        document.getElementById('outNext').innerText = fmtClock(nextStart);
+        // Calculate projected FDP End Time (Commenced + Extended)
+        const projectedFdpEnd = start + fdpLimit;
 
-        if (nextStart >= 2880) {
-            document.getElementById('outDay').innerText = "(Two Days Later)";
-        } else if (nextStart >= MINUTES_PER_DAY) {
-            document.getElementById('outDay').innerText = "(Next Day)";
-        } else {
-            document.getElementById('outDay').innerText = "(Today)";
-        }
+        // Update UI
+        document.getElementById('outMax').textContent = fmt(limitMinutes);
+        document.getElementById('outLimit').textContent = fmt(fdpLimit);
+        document.getElementById('outFdpEnd').textContent = clock(projectedFdpEnd);
+        document.getElementById('outExc').textContent = exceedance === 0 ? '00:00' : fmt(exceedance);
+        document.getElementById('outODP').textContent = fmt(totalODP);
+        document.getElementById('outNext').textContent = clock(nextStart);
+        document.getElementById('outDay').textContent = nextStart >= 2880 ? '(Two Days Later)' :
+                                                    nextStart >= MINUTES_PER_DAY ? '(Next Day)' : '(Today)';
 
         document.getElementById('placeholder').style.display = 'none';
         document.getElementById('resultsArea').style.display = 'block';
