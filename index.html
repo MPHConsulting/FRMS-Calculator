@@ -222,7 +222,7 @@
         <h2>1. Shift Details</h2>
         <label>Operating Base</label>
         <div class="button-group">
-            <button type="button" class="btn-toggle base-btn" data-value="belmont">Belmont</button>
+            <button type="button" class="btn-toggle base-btn active" data-value="belmont">Belmont</button>
             <button type="button" class="btn-toggle base-btn" data-value="lismore">Lismore</button>
             <button type="button" class="btn-toggle base-btn" data-value="tamworth">Tamworth</button>
         </div>
@@ -247,7 +247,7 @@
         <div class="time-row">
             <div>
                 <label for="nfd">NFD (HH:mm)</label>
-                <input type="time" id="nfd" value="00:00">
+                <input type="time" id="nfd" value="01:00">
             </div>
             <div>
                 <label for="rest">SDRP (HH:mm)</label>
@@ -299,7 +299,7 @@
         lismore: { day: { start: 420, end: 1140 }, night: { start: 1140, end: 420 + MINUTES_PER_DAY } },
         tamworth: { day: { start: 480, end: 1200 }, night: { start: 1200, end: 480 + MINUTES_PER_DAY } }
     };
-    let selectedBase = '';
+    let selectedBase = 'belmont';  // Default base
     let selectedShift = 'day';
     // Helpers
     const parseTime = (str) => str ? str.split(':').map(Number).reduce((h, m) => h * 60 + m, 0) : 0;
@@ -340,20 +340,30 @@
         document.getElementById('placeholder').style.display = 'none';
     }
     function resetForm() {
-        document.querySelectorAll('.base-btn, .shift-btn').forEach(b => b.classList.remove('active'));
+        // Reset base to Belmont
+        document.querySelectorAll('.base-btn').forEach(b => b.classList.remove('active'));
+        document.querySelector('.base-btn[data-value="belmont"]').classList.add('active');
+        selectedBase = 'belmont';
+
+        // Reset shift to Day
+        document.querySelectorAll('.shift-btn').forEach(b => b.classList.remove('active'));
         document.querySelector('.shift-btn[data-shift="day"]').classList.add('active');
+        selectedShift = 'day';
+
+        // Reset theme to Light
+        document.querySelectorAll('.theme-btn').forEach(b => b.classList.remove('active'));
         document.querySelector('.theme-btn[data-theme="light"]').classList.add('active');
         document.body.classList.remove('dark-mode');
+
         document.getElementById('start').value = '';
         document.getElementById('end').value = '';
-        document.getElementById('nfd').value = '00:00';
+        document.getElementById('nfd').value = '01:00';  // Default NFD = 1 hour
         document.getElementById('rest').value = '00:00';
         document.getElementById('commute').checked = true;
+
         document.getElementById('resultsArea').style.display = 'none';
         document.getElementById('placeholder').style.display = 'block';
         document.getElementById('errorMessage').style.display = 'none';
-        selectedBase = '';
-        selectedShift = 'day';
     }
     function runLogic() {
         document.getElementById('errorMessage').style.display = 'none';
@@ -414,6 +424,16 @@
         document.getElementById('placeholder').style.display = 'none';
         document.getElementById('resultsArea').style.display = 'block';
     }
+
+    // Set defaults on page load
+    window.onload = function() {
+        document.querySelector('.base-btn[data-value="belmont"]').classList.add('active');
+        document.querySelector('.shift-btn[data-shift="day"]').classList.add('active');
+        document.querySelector('.theme-btn[data-theme="light"]').classList.add('active');
+        document.getElementById('nfd').value = '01:00';
+        selectedBase = 'belmont';
+        selectedShift = 'day';
+    };
 </script>
 </body>
 </html>
