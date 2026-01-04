@@ -153,6 +153,55 @@
             margin-top: 10px;
         }
         .btn-secondary:hover { background: #545b62; }
+
+        /* Critical Times Display */
+        .critical-times {
+            display: flex;
+            gap: 20px;
+            flex-wrap: wrap;
+            margin-top: 20px;
+        }
+        .critical-box {
+            flex: 1;
+            min-width: 220px;
+            text-align: center;
+        }
+        .critical-label {
+            font-weight: bold;
+            margin-bottom: 8px;
+            font-size: 0.95rem;
+            opacity: 0.9;
+        }
+        .critical-value {
+            font-size: 1.8rem;
+            font-weight: bold;
+            font-family: monospace;
+            padding: 12px;
+            background: var(--input-bg);
+            border: 1px solid var(--input-border);
+            border-radius: 8px;
+            color: var(--input-text);
+        }
+        /* Light red for Box 1 and Box 2 */
+        #crit15hr, #critExtension {
+            background: #ffebee !important;
+            color: #c62828;
+        }
+        body.dark-mode #crit15hr,
+        body.dark-mode #critExtension {
+            background: #4a1c1c !important;
+            color: #ff8a80;
+        }
+        /* Darker red for Box 3 (hard limit) */
+        #crit16hr {
+            background: #ef9a9a !important;
+            color: #b71c1c;
+        }
+        body.dark-mode #crit16hr {
+            background: #7f0000 !important;
+            color: #ff5252;
+        }
+
         .result-box {
             background: var(--result-bg);
             color: var(--result-text);
@@ -218,6 +267,7 @@
         <h1 style="margin:0; font-size:1.5rem;">WHRS FRMS Calculator</h1>
         <span class="status">✓ System Online</span>
     </div>
+
     <div class="card">
         <h2>1. Shift Details</h2>
         <label>Operating Base</label>
@@ -242,6 +292,7 @@
             </div>
         </div>
     </div>
+
     <div class="card">
         <h2>2. Adjustments</h2>
         <div class="time-row">
@@ -251,7 +302,7 @@
             </div>
             <div>
                 <label for="rest">SDRP (HH:mm)</label>
-                <input type="time" id="rest" value="00:00">
+                <input type="time" id="rest">
             </div>
         </div>
         <div class="checkbox-container">
@@ -268,8 +319,27 @@
         <button class="btn" onclick="runLogic()">CALCULATE RESULTS</button>
         <button class="btn btn-secondary" onclick="resetForm()">RESET FORM</button>
     </div>
+
     <div class="card">
-        <h2>Calculated Results</h2>
+        <h2>3. Critical Times</h2>
+        <div class="critical-times">
+            <div class="critical-box">
+                <div class="critical-label">15hr From Shift Start</div>
+                <div class="critical-value" id="crit15hr">22:00</div>
+            </div>
+            <div class="critical-box">
+                <div class="critical-label">Extension Required</div>
+                <div class="critical-value" id="critExtension">--:--</div>
+            </div>
+            <div class="critical-box">
+                <div class="critical-label">16Hr Limit</div>
+                <div class="critical-value" id="crit16hr">--:--</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card">
+        <h2>4. Calculated Results</h2>
         <div id="errorMessage" class="error-message"></div>
         <div id="resultsArea" class="result-box">
             <div class="main-metric">
@@ -288,19 +358,23 @@
         </div>
     </div>
 </div>
+
 <script>
     const MINUTES_PER_DAY = 1440;
     const MAX_FDP_MINUTES = 960;
     const BASE_ODP_COMMUTE = 600;
     const BASE_ODP_NO_COMMUTE = 480;
-    // Nominal shift times (in minutes past midnight) - for internal reference only
-    const nominalShifts = {
-        belmont: { day: { start: 420, end: 1140 }, night: { start: 1140, end: 420 + MINUTES_PER_DAY } },
-        lismore: { day: { start: 420, end: 1140 }, night: { start: 1140, end: 420 + MINUTES_PER_DAY } },
-        tamworth: { day: { start: 480, end: 1200 }, night: { start: 1200, end: 480 + MINUTES_PER_DAY } }
+
+    // Nominal shift start times (in minutes past midnight)
+    const nominalStarts = {
+        belmont:  { day: 420, night: 1140 },  // 07:00 / 19:00
+        lismore:  { day: 420, night: 1140 },  // 07:00 / 19:00
+        tamworth: { day: 480, night: 1200 }   // 08:00 / 20:00
     };
-    let selectedBase = 'belmont';  // Default base
+
+    let selectedBase = 'belmont';
     let selectedShift = 'day';
+
     // Helpers
     const parseTime = (str) => str ? str.split(':').map(Number).reduce((h, m) => h * 60 + m, 0) : 0;
     const fmt = (mins) => {
@@ -309,22 +383,89 @@
         return `${h}:${m}`;
     };
     const clock = (mins) => fmt(((mins % MINUTES_PER_DAY) + MINUTES_PER_DAY) % MINUTES_PER_DAY);
+
+    // Update Box 1: 15hr From Shift Start
+    function updateCritical15hr() {
+        if (!selectedBase) return;
+        const shiftStart = nominalStarts[selectedBase][selectedShift];
+        const fifteenHoursLater = shiftStart + 900;
+        document.getElementById('crit15hr').textContent = clock(fifteenHoursLater);
+    }
+
+    // Update Box 3: 16Hr Limit = FDP Commenced + 16 hours
+    function updateCritical16hr() {
+        const startInput = document.getElementById('start').value;
+        if (!startInput) {
+            document.getElementById('crit16hr').textContent = '--:--';
+            return;
+        }
+        const startMins = parseTime(startInput);
+        const sixteenHoursLater = startMins + 960;
+        document.getElementById('crit16hr').textContent = clock(sixteenHoursLater);
+    }
+
+    // Update Box 2: Extension Required = FDP Commenced + current FDP Extended (capped at 16hr)
+    function updateCriticalExtension() {
+        const startInput = document.getElementById('start').value;
+        if (!startInput) {
+            document.getElementById('critExtension').textContent = '--:--';
+            return;
+        }
+        const startMins = parseTime(startInput);
+        const nfd = parseTime(document.getElementById('nfd').value);
+        const rest = parseTime(document.getElementById('rest').value);
+
+        // Replicate the FDP Extended calculation (same as in runLogic)
+        let limitHours = 10;
+        const startHour = Math.floor(startMins / 60);
+        if (startMins >= 300 && startMins < 360) limitHours = 11;
+        else if (startMins >= 360 && startMins < 420) limitHours = 11.5;
+        else if (startMins >= 420 && startMins < 720) limitHours = 12;
+        else if (startMins >= 720 && startMins < 900) limitHours = 11;
+        else if (startMins >= 900 && startMins < 960) limitHours = 10.5;
+
+        let fdpLimit = limitHours * 60 - nfd;
+        if (rest >= 120) fdpLimit += rest;
+        if (fdpLimit > MAX_FDP_MINUTES) fdpLimit = MAX_FDP_MINUTES;  // Cap at 16hr
+
+        const extensionTime = startMins + fdpLimit;
+        document.getElementById('critExtension').textContent = clock(extensionTime);
+    }
+
     // Base selection
     document.querySelectorAll('.base-btn').forEach(btn => {
         btn.addEventListener('click', () => {
             document.querySelectorAll('.base-btn').forEach(b => b.classList.remove('active'));
             btn.classList.add('active');
             selectedBase = btn.dataset.value;
+            updateCritical15hr();
         });
     });
+
     // Shift type selection
     document.querySelectorAll('.shift-btn').forEach(btn => {
         btn.addEventListener('click', () => {
             document.querySelectorAll('.shift-btn').forEach(b => b.classList.remove('active'));
             btn.classList.add('active');
             selectedShift = btn.dataset.shift;
+            updateCritical15hr();
         });
     });
+
+    // Live updates for Critical Times when inputs change
+    document.getElementById('start').addEventListener('input', () => {
+        updateCritical16hr();
+        updateCriticalExtension();
+    });
+    document.getElementById('start').addEventListener('change', () => {
+        updateCritical16hr();
+        updateCriticalExtension();
+    });
+    document.getElementById('nfd').addEventListener('input', updateCriticalExtension);
+    document.getElementById('nfd').addEventListener('change', updateCriticalExtension);
+    document.getElementById('rest').addEventListener('input', updateCriticalExtension);
+    document.getElementById('rest').addEventListener('change', updateCriticalExtension);
+
     // Theme toggle
     document.querySelectorAll('.theme-btn').forEach(btn => {
         btn.addEventListener('click', () => {
@@ -333,38 +474,42 @@
             document.body.classList.toggle('dark-mode', btn.dataset.theme === 'dark');
         });
     });
+
     function showError(msg) {
         document.getElementById('errorMessage').textContent = msg;
         document.getElementById('errorMessage').style.display = 'block';
         document.getElementById('resultsArea').style.display = 'none';
         document.getElementById('placeholder').style.display = 'none';
     }
+
     function resetForm() {
-        // Reset base to Belmont
         document.querySelectorAll('.base-btn').forEach(b => b.classList.remove('active'));
         document.querySelector('.base-btn[data-value="belmont"]').classList.add('active');
         selectedBase = 'belmont';
 
-        // Reset shift to Day
         document.querySelectorAll('.shift-btn').forEach(b => b.classList.remove('active'));
         document.querySelector('.shift-btn[data-shift="day"]').classList.add('active');
         selectedShift = 'day';
 
-        // Reset theme to Light
         document.querySelectorAll('.theme-btn').forEach(b => b.classList.remove('active'));
         document.querySelector('.theme-btn[data-theme="light"]').classList.add('active');
         document.body.classList.remove('dark-mode');
 
         document.getElementById('start').value = '';
         document.getElementById('end').value = '';
-        document.getElementById('nfd').value = '01:00';  // Default NFD = 1 hour
-        document.getElementById('rest').value = '00:00';
+        document.getElementById('nfd').value = '01:00';
+        document.getElementById('rest').value = '';
         document.getElementById('commute').checked = true;
 
         document.getElementById('resultsArea').style.display = 'none';
         document.getElementById('placeholder').style.display = 'block';
         document.getElementById('errorMessage').style.display = 'none';
+
+        updateCritical15hr();
+        updateCritical16hr();
+        updateCriticalExtension();
     }
+
     function runLogic() {
         document.getElementById('errorMessage').style.display = 'none';
         const baseBtn = document.querySelector('.base-btn.active');
@@ -401,10 +546,8 @@
         const penalty = Math.ceil(exceedance / 30) * 60;
         const totalODP = calcODP + penalty;
         const nextStart = end + totalODP;
-        // Calculate projected FDP End Time (Commenced + Extended)
         const projectedFdpEnd = start + fdpLimit;
 
-        // Dynamic label for FDP Extended / Remaining
         const fdpLabel = document.getElementById('fdpLabel');
         if (fdpLimit <= limitMinutes) {
             fdpLabel.textContent = 'FDP Remaining:';
@@ -412,7 +555,6 @@
             fdpLabel.textContent = 'FDP Extended:';
         }
 
-        // Update UI
         document.getElementById('outMax').textContent = fmt(limitMinutes);
         document.getElementById('outLimit').textContent = fmt(fdpLimit);
         document.getElementById('outFdpEnd').textContent = clock(projectedFdpEnd);
@@ -431,8 +573,12 @@
         document.querySelector('.shift-btn[data-shift="day"]').classList.add('active');
         document.querySelector('.theme-btn[data-theme="light"]').classList.add('active');
         document.getElementById('nfd').value = '01:00';
+        document.getElementById('rest').value = '';
         selectedBase = 'belmont';
         selectedShift = 'day';
+        updateCritical15hr();
+        updateCritical16hr();
+        updateCriticalExtension();
     };
 </script>
 </body>
