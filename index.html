@@ -17,7 +17,8 @@
             --input-border: #ccc;
             --input-text: #000;
             --accent-color: #007bff;
-            --result-bg: #e8f5e9;
+            --result-bg-green: #e8f5e9;
+            --result-bg-white: #ffffff;
             --result-text: #1b5e20;
             --result-border: #c8e6c9;
         }
@@ -31,7 +32,8 @@
             --input-border: #555;
             --input-text: #fff;
             --accent-color: #0d6efd;
-            --result-bg: #0f2912;
+            --result-bg-green: #0f2912;
+            --result-bg-white: #1e1e1e;
             --result-text: #a5d6a7;
             --result-border: #2e7d32;
         }
@@ -211,14 +213,22 @@
         }
 
         .result-box {
-            background: var(--result-bg);
-            color: var(--result-text);
             padding: 24px;
             margin-top: 15px;
             border-radius: 8px;
             border: 1px solid var(--result-border);
             display: none;
+            transition: background 0.3s ease;
         }
+        .result-box.calculated {
+            background: var(--result-bg-green);
+            color: var(--result-text);
+        }
+        .result-box.stale {
+            background: var(--result-bg-white);
+            color: var(--text-color);
+        }
+
         .error-message {
             background: #f8d7da;
             color: #721c24;
@@ -375,13 +385,15 @@
 
     // Nominal shift start times (in minutes past midnight)
     const nominalStarts = {
-        belmont:  { day: 420, night: 1140 },  // 07:00 / 19:00
-        lismore:  { day: 420, night: 1140 },  // 07:00 / 19:00
-        tamworth: { day: 480, night: 1200 }   // 08:00 / 20:00
+        belmont:  { day: 420, night: 1140 },
+        lismore:  { day: 420, night: 1140 },
+        tamworth: { day: 480, night: 1200 }
     };
 
     let selectedBase = 'belmont';
     let selectedShift = 'day';
+    let userHasEditedEnd = false;
+    let resultsAreFresh = false;  // Track if results are up-to-date
 
     // Helpers
     const parseTime = (str) => str ? str.split(':').map(Number).reduce((h, m) => h * 60 + m, 0) : 0;
@@ -392,7 +404,30 @@
     };
     const clock = (mins) => fmt(((mins % MINUTES_PER_DAY) + MINUTES_PER_DAY) % MINUTES_PER_DAY);
 
-    // Update Box 1: 15hr From Shift Start
+    // Mark results as stale when any input changes
+    function markResultsStale() {
+        if (resultsAreFresh) {
+            const resultsBox = document.getElementById('resultsArea');
+            resultsBox.classList.remove('calculated');
+            resultsBox.classList.add('stale');
+            resultsAreFresh = false;
+        }
+    }
+
+    // SDRP validation
+    function validateSDRP() {
+        const restInput = document.getElementById('rest');
+        const restVal = restInput.value;
+        if (restVal) {
+            const restMins = parseTime(restVal);
+            if (restMins > 0 && restMins < 120) {
+                alert("SDRP must be at least 2 hours (02:00) to qualify for extension.");
+                restInput.value = '';
+            }
+        }
+    }
+
+    // Update Box 1
     function updateCritical15hr() {
         if (!selectedBase) return;
         const shiftStart = nominalStarts[selectedBase][selectedShift];
@@ -400,7 +435,7 @@
         document.getElementById('crit15hr').textContent = clock(fifteenHoursLater);
     }
 
-    // Update Box 3: 16hr Limit = FDP Commenced + 16 hours
+    // Update Box 3
     function updateCritical16hr() {
         const startInput = document.getElementById('start').value;
         if (!startInput) {
@@ -412,7 +447,7 @@
         document.getElementById('crit16hr').textContent = clock(sixteenHoursLater);
     }
 
-    // Update Box 2: Extension Required = FDP Commenced + current FDP Extended (capped at 16hr)
+    // Update Box 2
     function updateCriticalExtension() {
         const startInput = document.getElementById('start').value;
         if (!startInput) {
@@ -423,7 +458,6 @@
         const nfd = parseTime(document.getElementById('nfd').value);
         const rest = parseTime(document.getElementById('rest').value);
 
-        // Replicate the FDP Extended calculation
         let limitHours = 10;
         if (startMins >= 300 && startMins < 360) limitHours = 11;
         else if (startMins >= 360 && startMins < 420) limitHours = 11.5;
@@ -439,39 +473,97 @@
         document.getElementById('critExtension').textContent = clock(extensionTime);
     }
 
-    // Base selection
+    // Auto-fill FDP Completed
+    function autoFillFdpCompleted() {
+        if (userHasEditedEnd) return;
+
+        const startInput = document.getElementById('start').value;
+        if (!startInput) {
+            document.getElementById('end').value = '';
+            return;
+        }
+        const startMins = parseTime(startInput);
+        const nfd = parseTime(document.getElementById('nfd').value);
+
+        let limitHours = 10;
+        if (startMins >= 300 && startMins < 360) limitHours = 11;
+        else if (startMins >= 360 && startMins < 420) limitHours = 11.5;
+        else if (startMins >= 420 && startMins < 720) limitHours = 12;
+        else if (startMins >= 720 && startMins < 900) limitHours = 11;
+        else if (startMins >= 900 && startMins < 960) limitHours = 10.5;
+
+        const maxFdpMinutes = limitHours * 60;
+        const projectedEnd = startMins + maxFdpMinutes - nfd;
+        document.getElementById('end').value = clock(projectedEnd);
+    }
+
+    // Detect manual edit of FDP Completed
+    document.getElementById('end').addEventListener('input', () => {
+        userHasEditedEnd = true;
+        markResultsStale();
+    });
+
+    // Base & Shift selection
     document.querySelectorAll('.base-btn').forEach(btn => {
         btn.addEventListener('click', () => {
             document.querySelectorAll('.base-btn').forEach(b => b.classList.remove('active'));
             btn.classList.add('active');
             selectedBase = btn.dataset.value;
             updateCritical15hr();
+            markResultsStale();
         });
     });
 
-    // Shift type selection
     document.querySelectorAll('.shift-btn').forEach(btn => {
         btn.addEventListener('click', () => {
             document.querySelectorAll('.shift-btn').forEach(b => b.classList.remove('active'));
             btn.classList.add('active');
             selectedShift = btn.dataset.shift;
             updateCritical15hr();
+            markResultsStale();
         });
     });
 
-    // Live updates for Critical Times
-    document.getElementById('start').addEventListener('input', () => {
+    // Live updates
+    const startInput = document.getElementById('start');
+    startInput.addEventListener('input', () => {
+        autoFillFdpCompleted();
         updateCritical16hr();
         updateCriticalExtension();
+        markResultsStale();
     });
-    document.getElementById('start').addEventListener('change', () => {
+    startInput.addEventListener('change', () => {
+        autoFillFdpCompleted();
         updateCritical16hr();
         updateCriticalExtension();
+        markResultsStale();
     });
-    document.getElementById('nfd').addEventListener('input', updateCriticalExtension);
-    document.getElementById('nfd').addEventListener('change', updateCriticalExtension);
-    document.getElementById('rest').addEventListener('input', updateCriticalExtension);
-    document.getElementById('rest').addEventListener('change', updateCriticalExtension);
+
+    document.getElementById('nfd').addEventListener('input', () => {
+        autoFillFdpCompleted();
+        updateCriticalExtension();
+        markResultsStale();
+    });
+    document.getElementById('nfd').addEventListener('change', () => {
+        autoFillFdpCompleted();
+        updateCriticalExtension();
+        markResultsStale();
+    });
+
+    const restInput = document.getElementById('rest');
+    restInput.addEventListener('input', () => {
+        validateSDRP();
+        updateCriticalExtension();
+        markResultsStale();
+    });
+    restInput.addEventListener('change', () => {
+        validateSDRP();
+        updateCriticalExtension();
+        markResultsStale();
+    });
+    restInput.addEventListener('blur', validateSDRP);
+
+    document.getElementById('commute').addEventListener('change', markResultsStale);
 
     // Theme toggle
     document.querySelectorAll('.theme-btn').forEach(btn => {
@@ -508,7 +600,11 @@
         document.getElementById('rest').value = '';
         document.getElementById('commute').checked = true;
 
+        userHasEditedEnd = false;
+        resultsAreFresh = false;
+
         document.getElementById('resultsArea').style.display = 'none';
+        document.getElementById('resultsArea').classList.remove('calculated', 'stale');
         document.getElementById('placeholder').style.display = 'block';
         document.getElementById('errorMessage').style.display = 'none';
 
@@ -570,8 +666,14 @@
         document.getElementById('outNext').textContent = clock(nextStart);
         document.getElementById('outDay').textContent = nextStart >= 2880 ? '(Two Days Later)' :
                                                     nextStart >= MINUTES_PER_DAY ? '(Next Day)' : '(Today)';
+
+        // Show results with fresh green background
+        const resultsBox = document.getElementById('resultsArea');
+        resultsBox.classList.remove('stale');
+        resultsBox.classList.add('calculated');
+        resultsBox.style.display = 'block';
         document.getElementById('placeholder').style.display = 'none';
-        document.getElementById('resultsArea').style.display = 'block';
+        resultsAreFresh = true;
     }
 
     // Set defaults on page load
@@ -583,6 +685,8 @@
         document.getElementById('rest').value = '';
         selectedBase = 'belmont';
         selectedShift = 'day';
+        userHasEditedEnd = false;
+        resultsAreFresh = false;
         updateCritical15hr();
         updateCritical16hr();
         updateCriticalExtension();
