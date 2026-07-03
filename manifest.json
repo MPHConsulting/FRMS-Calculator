@@ -1,0 +1,19 @@
+{
+  "name": "WHRS FRMS Calculator",
+  "short_name": "FRMS",
+  "description": "Fatigue Risk Management System duty and rest calculator for WHRS.",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#f0f2f5",
+  "theme_color": "#0056b3",
+  "icons": [
+    {
+      "src": "icon.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}

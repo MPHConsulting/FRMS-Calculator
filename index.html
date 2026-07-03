@@ -2,9 +2,15 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <meta name="theme-color" content="#0056b3">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="FRMS">
     <title>WHRS FRMS Calculator</title>
     <link rel="apple-touch-icon" href="icon.png">
+    <link rel="manifest" href="manifest.json">
     <style>
         /* --- CSS VARIABLES FOR THEMES --- */
         :root {
@@ -37,14 +43,22 @@
             --result-text: #a5d6a7;
             --result-border: #2e7d32;
         }
+        * { -webkit-tap-highlight-color: rgba(0,0,0,0.08); }
+        html { -webkit-text-size-adjust: 100%; }
         body {
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
             background-color: var(--bg-color);
             margin: 0;
             padding: 20px;
+            padding-left: calc(20px + env(safe-area-inset-left));
+            padding-right: calc(20px + env(safe-area-inset-right));
+            padding-top: calc(20px + env(safe-area-inset-top));
+            padding-bottom: calc(20px + env(safe-area-inset-bottom));
             color: var(--text-color);
-            transition: all 0.3s ease;
+            transition: background-color 0.3s ease, color 0.3s ease;
+            -webkit-font-smoothing: antialiased;
         }
+        button { touch-action: manipulation; }
         .container { max-width: 800px; margin: 0 auto; }
         .header {
             display: flex;
@@ -126,6 +140,32 @@
             }
         }
 
+        /* Duration inputs (NFD / SDRP) */
+        .duration-group {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .duration-group input[type="number"] {
+            width: 90px;
+            padding: 12px;
+            font-size: 16px;
+            box-sizing: border-box;
+            border: 1px solid var(--input-border);
+            border-radius: 8px;
+            background: var(--input-bg);
+            color: var(--input-text);
+            text-align: center;
+        }
+        .duration-group .unit { font-weight: bold; opacity: 0.7; }
+        .field-hint {
+            margin-top: 8px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: #b26a00;
+        }
+        body.dark-mode .field-hint { color: #ffcc80; }
+
         .checkbox-container {
             background: var(--bg-color);
             padding: 16px;
@@ -172,6 +212,15 @@
             font-size: 16px;
         }
         .odp-breakdown-btn:hover { background: #218838; }
+
+        /* Copy Result Button */
+        .copy-btn {
+            background: #17a2b8;
+            margin-top: 10px;
+            padding: 12px;
+            font-size: 16px;
+        }
+        .copy-btn:hover { background: #117a8b; }
 
         /* Critical Times Display */
         .critical-times {
@@ -331,6 +380,71 @@
             cursor: pointer;
         }
         .close-modal:hover { color: var(--text-color); }
+
+        /* --- MOBILE PHONE OPTIMISATION --- */
+        @media (max-width: 600px) {
+            body { padding: calc(12px + env(safe-area-inset-top)) calc(12px + env(safe-area-inset-right)) calc(12px + env(safe-area-inset-bottom)) calc(12px + env(safe-area-inset-left)); }
+            .header {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 4px;
+                margin-bottom: 14px;
+            }
+            .header h1 { font-size: 1.25rem; }
+            .status { font-size: 0.8rem; }
+            .card {
+                padding: 16px;
+                margin-bottom: 14px;
+                border-radius: 10px;
+            }
+            h2 { font-size: 1rem; padding-bottom: 8px; }
+            label { margin: 12px 0 5px; }
+
+            /* Stack the paired time/duration fields into one column */
+            .time-row { flex-direction: column; gap: 0; }
+            .time-row > div { min-width: 0; width: 100%; }
+
+            /* Base buttons: fit 3 across on a phone instead of wrapping */
+            .btn-toggle { min-width: 0; padding: 12px 6px; font-size: 15px; }
+            .button-group { gap: 8px; }
+
+            .duration-group input[type="number"] { flex: 1; width: auto; }
+
+            .btn { padding: 16px; font-size: 17px; margin-top: 18px; }
+
+            /* Critical times stack vertically and read as compact rows */
+            .critical-times { flex-direction: column; gap: 12px; }
+            .critical-box {
+                min-width: 0;
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+                text-align: left;
+                gap: 12px;
+            }
+            .critical-label { margin-bottom: 0; }
+            .critical-value {
+                font-size: 1.3rem;
+                padding: 8px 12px;
+                min-width: 96px;
+                text-align: center;
+            }
+
+            .result-box { padding: 18px; }
+            .metric-value { font-size: 2.1rem; }
+            .result-row { font-size: 1rem; }
+            .result-val { font-size: 1.05rem; }
+            .odp-modal-content { padding: 20px; }
+        }
+
+        @media (max-width: 360px) {
+            .btn-toggle { font-size: 14px; padding: 11px 4px; }
+            .header h1 { font-size: 1.15rem; }
+        }
+
+        @media (hover: none) {
+            .btn-toggle:not(.active):hover { border-color: var(--input-border); }
+        }
     </style>
 </head>
 <body>
@@ -342,16 +456,16 @@
 
     <div class="card">
         <h2>1. Shift Details</h2>
-        <label>Operating Base</label>
-        <div class="button-group">
-            <button type="button" class="btn-toggle base-btn active" data-value="belmont">Belmont</button>
-            <button type="button" class="btn-toggle base-btn" data-value="lismore">Lismore</button>
-            <button type="button" class="btn-toggle base-btn" data-value="tamworth">Tamworth</button>
+        <label id="baseLabel">Operating Base</label>
+        <div class="button-group" role="group" aria-labelledby="baseLabel">
+            <button type="button" class="btn-toggle base-btn active" data-value="belmont" aria-pressed="true">Belmont</button>
+            <button type="button" class="btn-toggle base-btn" data-value="lismore" aria-pressed="false">Lismore</button>
+            <button type="button" class="btn-toggle base-btn" data-value="tamworth" aria-pressed="false">Tamworth</button>
         </div>
-        <label>Actual Shift Type</label>
-        <div class="button-group">
-            <button type="button" class="btn-toggle shift-btn active" data-shift="day">Day Shift</button>
-            <button type="button" class="btn-toggle shift-btn" data-shift="night">Night Shift</button>
+        <label id="shiftLabel">Actual Shift Type</label>
+        <div class="button-group" role="group" aria-labelledby="shiftLabel">
+            <button type="button" class="btn-toggle shift-btn active" data-shift="day" aria-pressed="true">Day Shift</button>
+            <button type="button" class="btn-toggle shift-btn" data-shift="night" aria-pressed="false">Night Shift</button>
         </div>
         <div class="time-row">
             <div>
@@ -369,12 +483,23 @@
         <h2>2. Adjustments</h2>
         <div class="time-row">
             <div>
-                <label for="nfd">NFD (HH:mm)</label>
-                <input type="time" id="nfd" value="01:00">
+                <label for="nfdH">NFD (Duration)</label>
+                <div class="duration-group">
+                    <input type="number" id="nfdH" min="0" max="23" step="1" inputmode="numeric" value="1" aria-label="NFD hours">
+                    <span class="unit">h</span>
+                    <input type="number" id="nfdM" min="0" max="59" step="5" inputmode="numeric" value="0" aria-label="NFD minutes">
+                    <span class="unit">m</span>
+                </div>
             </div>
             <div>
-                <label for="rest">SDRP (HH:mm)</label>
-                <input type="time" id="rest">
+                <label for="restH">SDRP (Duration)</label>
+                <div class="duration-group">
+                    <input type="number" id="restH" min="0" max="23" step="1" inputmode="numeric" placeholder="0" aria-label="SDRP hours">
+                    <span class="unit">h</span>
+                    <input type="number" id="restM" min="0" max="59" step="5" inputmode="numeric" placeholder="0" aria-label="SDRP minutes">
+                    <span class="unit">m</span>
+                </div>
+                <div id="sdrpWarning" class="field-hint" style="display:none;">SDRP must be at least 2h (02:00) to count toward an extension.</div>
             </div>
         </div>
         <div class="checkbox-container">
@@ -383,10 +508,10 @@
                 Commute to home required?
             </label>
         </div>
-        <label>Theme Preference</label>
-        <div class="button-group">
-            <button type="button" class="btn-toggle theme-btn active" data-theme="light">☀️ Light Mode</button>
-            <button type="button" class="btn-toggle theme-btn" data-theme="dark">🌙 Dark Mode</button>
+        <label id="themeLabel">Theme Preference</label>
+        <div class="button-group" role="group" aria-labelledby="themeLabel">
+            <button type="button" class="btn-toggle theme-btn active" data-theme="light" aria-pressed="true">☀️ Light Mode</button>
+            <button type="button" class="btn-toggle theme-btn" data-theme="dark" aria-pressed="false">🌙 Dark Mode</button>
         </div>
         <button class="btn" onclick="runLogic()">CALCULATE RESULTS</button>
         <button class="btn btn-secondary" onclick="resetForm()">RESET FORM</button>
@@ -394,10 +519,10 @@
 
     <div class="card">
         <h2>3. Critical Times</h2>
-        <div class="critical-times">
+        <div class="critical-times" aria-live="polite">
             <div class="critical-box">
                 <div class="critical-label">15hr From Shift Start</div>
-                <div class="critical-value" id="crit15hr">22:00</div>
+                <div class="critical-value" id="crit15hr">--:--</div>
             </div>
             <div class="critical-box">
                 <div class="critical-label">Extension Required</div>
@@ -412,19 +537,21 @@
 
     <div class="card">
         <h2>4. Calculated Results</h2>
-        <div id="errorMessage" class="error-message"></div>
-        <div id="resultsArea" class="result-box">
+        <div id="errorMessage" class="error-message" role="alert"></div>
+        <div id="resultsArea" class="result-box" aria-live="polite">
             <div class="main-metric">
                 <span style="text-transform: uppercase; font-size: 0.8rem; letter-spacing: 1px;">Earliest Next Start</span>
                 <span id="outNext" class="metric-value">--:--</span>
                 <div id="outDay" class="metric-note"></div>
             </div>
             <div class="result-row"><span>Max FDP:</span> <span id="outMax" class="result-val">--:--</span></div>
-            <div class="result-row"><span id="fdpLabel">FDP Extended:</span> <span id="outLimit" class="result-val">--:--</span></div>
-            <div class="result-row"><span>FDP End Time:</span> <span id="outFdpEnd" class="result-val">--:--</span></div>
+            <div class="result-row"><span id="fdpLabel">Max FDP (Extended):</span> <span id="outLimit" class="result-val">--:--</span></div>
+            <div class="result-row"><span>Latest Permitted End:</span> <span id="outFdpEnd" class="result-val">--:--</span></div>
+            <div class="result-row"><span>Actual FDP End:</span> <span id="outActualEnd" class="result-val">--:--</span></div>
             <div class="result-row"><span>Exceedance:</span> <span id="outExc" class="result-val">--:--</span></div>
             <div class="result-row"><span>ODP (Hrs):</span> <span id="outODP" class="result-val">--:--</span></div>
             <button class="btn odp-breakdown-btn" id="odpBreakdownBtn" onclick="showODPBreakdown()" style="display:none;">Show ODP Calculation</button>
+            <button class="btn copy-btn" id="copyBtn" onclick="copyResults()" style="display:none;">Copy Result</button>
         </div>
         <div id="placeholder" class="placeholder">
             <em>Enter data above and press Calculate</em>
@@ -442,6 +569,20 @@
 </div>
 
 <script>
+    /* =====================================================================
+       WHRS FRMS CALCULATOR
+       ---------------------------------------------------------------------
+       REGULATORY BASIS / ASSUMPTIONS
+       The numeric thresholds below encode the operator's Fatigue Risk
+       Management System (FRMS) rules. They are the single source of truth
+       for the calculation and MUST be verified against the current
+       WHRS FRMS / EBA documentation before deployment:
+         - Max FDP hard cap: 16h (MAX_FDP_MINUTES).
+         - Base ODP (rest): 8h normally, 10h when a home commute is required.
+         - Local night window: 23:00–05:59.
+         - FDP limit by start-of-duty band: see getLimitHours().
+         - Exceedance penalty: 1h of ODP per (part-)30min over the FDP limit.
+       ===================================================================== */
     const MINUTES_PER_DAY = 1440;
     const MAX_FDP_MINUTES = 960;
     const BASE_ODP = 480;  // 8 hours
@@ -456,6 +597,8 @@
         tamworth: { day: 480, night: 1200 }
     };
 
+    const STORAGE_KEY = 'frms_prefs_v1';
+
     let selectedBase = 'belmont';
     let selectedShift = 'day';
     let userHasEditedEnd = false;
@@ -464,7 +607,7 @@
     // Store last calculation details for breakdown
     let lastODPDetails = {};
 
-    // Helpers
+    // ---- Helpers ----
     const parseTime = (str) => str ? str.split(':').map(Number).reduce((h, m) => h * 60 + m, 0) : 0;
     const fmt = (mins) => {
         const h = String(Math.floor(mins / 60)).padStart(2, '0');
@@ -473,275 +616,55 @@
     };
     const clock = (mins) => fmt(((mins % MINUTES_PER_DAY) + MINUTES_PER_DAY) % MINUTES_PER_DAY);
 
-    // Detect if FDP overlaps local night (worked into it)
-    function isFDPInLocalNight(start, end) {
-        if (end < start) end += MINUTES_PER_DAY;
-        const localStart = LOCAL_NIGHT_START;
-        const localEnd = LOCAL_NIGHT_END + MINUTES_PER_DAY;  // Crosses midnight
-        return start < localEnd && end > localStart;
+    // Read a duration (in minutes) from an hours field + minutes field
+    function readDuration(hId, mId) {
+        const h = parseInt(document.getElementById(hId).value, 10) || 0;
+        const m = parseInt(document.getElementById(mId).value, 10) || 0;
+        return (h * 60) + m;
     }
 
-    // Mark results as stale
-    function markResultsStale() {
-        if (resultsAreFresh) {
-            const resultsBox = document.getElementById('resultsArea');
-            resultsBox.classList.remove('calculated');
-            resultsBox.classList.add('stale');
-            document.getElementById('odpBreakdownBtn').style.display = 'none';
-            resultsAreFresh = false;
+    // Single source of truth for the FDP limit (hours) by start-of-duty band
+    function getLimitHours(startMins) {
+        if (startMins >= 300 && startMins < 360) return 11;      // 05:00–05:59
+        if (startMins >= 360 && startMins < 420) return 11.5;    // 06:00–06:59
+        if (startMins >= 420 && startMins < 720) return 12;      // 07:00–11:59
+        if (startMins >= 720 && startMins < 900) return 11;      // 12:00–14:59
+        if (startMins >= 900 && startMins < 960) return 10.5;    // 15:00–15:59
+        return 10;
+    }
+
+    /* The local night block is 23:00–05:59. Per FRMP 6.9 the reduced (8h) ODP
+       base only applies if the OFF-DUTY period FULLY contains that whole block.
+       The off-duty period runs from FDP end to the next rostered shift start
+       (same base and shift type). All times below are absolute minutes so the
+       window can span multiple days. */
+    function windowContainsLocalNight(restStartAbs, restEndAbs) {
+        const firstDay = Math.floor(restStartAbs / MINUTES_PER_DAY) - 1;
+        const lastDay = Math.floor(restEndAbs / MINUTES_PER_DAY) + 1;
+        for (let d = firstDay; d <= lastDay; d++) {
+            const nightStart = d * MINUTES_PER_DAY + LOCAL_NIGHT_START;                 // 23:00
+            const nightEnd = d * MINUTES_PER_DAY + MINUTES_PER_DAY + LOCAL_NIGHT_END;   // 05:59 next day
+            if (restStartAbs <= nightStart && restEndAbs >= nightEnd) return true;
         }
+        return false;
     }
 
-    // Show ODP breakdown modal
-    function showODPBreakdown() {
-        const content = document.getElementById('odpBreakdownContent');
-        let html = `
-            <div class="odp-breakdown-row"><span>Local Night Included in ODP:</span> <span class="odp-breakdown-val">${lastODPDetails.localNight ? 'Yes' : 'No'}</span></div>
-            <div class="odp-breakdown-row"><span>Base ODP:</span> <span class="odp-breakdown-val">${fmt(lastODPDetails.base)}</span></div>
-            <div class="odp-breakdown-row"><span>Over 12h Addition:</span> <span class="odp-breakdown-val">${fmt(lastODPDetails.over12)}</span></div>
-        `;
-        if (lastODPDetails.penalty > 0) {
-            html += `<div class="odp-breakdown-row"><span>Extension Penalty:</span> <span class="odp-breakdown-val">${fmt(lastODPDetails.penalty)}</span></div>`;
-            if (lastODPDetails.extensionBase8) {
-                html += `<div class="odp-breakdown-row"><span>(Penalty applied to 8hr base due to local night)</span> <span></span></div>`;
-            }
-        }
-        if (lastODPDetails.floorApplied) {
-            html += `<div class="odp-breakdown-row"><span>Floor to 10h (commute):</span> <span class="odp-breakdown-val">Applied</span></div>`;
-        }
-        html += `<div class="odp-breakdown-row"><span><strong>Total ODP:</strong></span> <span class="odp-breakdown-val"><strong>${fmt(lastODPDetails.total)}</strong></span></div>`;
-        content.innerHTML = html;
-        document.getElementById('odpModal').style.display = 'flex';
+    function odpIncludesLocalNight(base, shift, fdpEndAbs) {
+        const nominal = nominalStarts[base][shift];
+        let nextStartAbs = nominal;
+        while (nextStartAbs <= fdpEndAbs) nextStartAbs += MINUTES_PER_DAY;  // first rostered start after FDP end
+        return windowContainsLocalNight(fdpEndAbs, nextStartAbs);
     }
 
-    // Close modal on outside click
-    window.onclick = function(event) {
-        const modal = document.getElementById('odpModal');
-        if (event.target == modal) {
-            modal.style.display = 'none';
-        }
-    }
-
-    // SDRP validation
-    function validateSDRP() {
-        const restInput = document.getElementById('rest');
-        const restVal = restInput.value;
-        if (restVal) {
-            const restMins = parseTime(restVal);
-            if (restMins > 0 && restMins < 120) {
-                alert("SDRP must be at least 2 hours (02:00) to qualify for extension.");
-                restInput.value = '';
-            }
-        }
-    }
-
-    // Update Box 1
-    function updateCritical15hr() {
-        if (!selectedBase) return;
-        const shiftStart = nominalStarts[selectedBase][selectedShift];
-        const fifteenHoursLater = shiftStart + 900;
-        document.getElementById('crit15hr').textContent = clock(fifteenHoursLater);
-    }
-
-    // Update Box 3
-    function updateCritical16hr() {
-        const startInput = document.getElementById('start').value;
-        if (!startInput) {
-            document.getElementById('crit16hr').textContent = '--:--';
-            return;
-        }
-        const startMins = parseTime(startInput);
-        const sixteenHoursLater = startMins + 960;
-        document.getElementById('crit16hr').textContent = clock(sixteenHoursLater);
-    }
-
-    // Update Box 2
-    function updateCriticalExtension() {
-        const startInput = document.getElementById('start').value;
-        if (!startInput) {
-            document.getElementById('critExtension').textContent = '--:--';
-            return;
-        }
-        const startMins = parseTime(startInput);
-        const nfd = parseTime(document.getElementById('nfd').value);
-        const rest = parseTime(document.getElementById('rest').value);
-
-        let limitHours = 10;
-        if (startMins >= 300 && startMins < 360) limitHours = 11;
-        else if (startMins >= 360 && startMins < 420) limitHours = 11.5;
-        else if (startMins >= 420 && startMins < 720) limitHours = 12;
-        else if (startMins >= 720 && startMins < 900) limitHours = 11;
-        else if (startMins >= 900 && startMins < 960) limitHours = 10.5;
-
-        let fdpLimit = limitHours * 60 - nfd;
-        if (rest >= 120) fdpLimit += rest;
-        if (fdpLimit > MAX_FDP_MINUTES) fdpLimit = MAX_FDP_MINUTES;
-
-        const extensionTime = startMins + fdpLimit;
-        document.getElementById('critExtension').textContent = clock(extensionTime);
-    }
-
-    // Auto-fill FDP Completed
-    function autoFillFdpCompleted() {
-        if (userHasEditedEnd) return;
-
-        const startInput = document.getElementById('start').value;
-        if (!startInput) {
-            document.getElementById('end').value = '';
-            return;
-        }
-        const startMins = parseTime(startInput);
-        const nfd = parseTime(document.getElementById('nfd').value);
-
-        let limitHours = 10;
-        if (startMins >= 300 && startMins < 360) limitHours = 11;
-        else if (startMins >= 360 && startMins < 420) limitHours = 11.5;
-        else if (startMins >= 420 && startMins < 720) limitHours = 12;
-        else if (startMins >= 720 && startMins < 900) limitHours = 11;
-        else if (startMins >= 900 && startMins < 960) limitHours = 10.5;
-
-        const maxFdpMinutes = limitHours * 60;
-        const projectedEnd = startMins + maxFdpMinutes - nfd;
-        document.getElementById('end').value = clock(projectedEnd);
-    }
-
-    // Detect manual edit of FDP Completed
-    document.getElementById('end').addEventListener('input', () => {
-        userHasEditedEnd = true;
-        markResultsStale();
-    });
-
-    // Base & Shift selection
-    document.querySelectorAll('.base-btn').forEach(btn => {
-        btn.addEventListener('click', () => {
-            document.querySelectorAll('.base-btn').forEach(b => b.classList.remove('active'));
-            btn.classList.add('active');
-            selectedBase = btn.dataset.value;
-            updateCritical15hr();
-            markResultsStale();
-        });
-    });
-
-    document.querySelectorAll('.shift-btn').forEach(btn => {
-        btn.addEventListener('click', () => {
-            document.querySelectorAll('.shift-btn').forEach(b => b.classList.remove('active'));
-            btn.classList.add('active');
-            selectedShift = btn.dataset.shift;
-            updateCritical15hr();
-            markResultsStale();
-        });
-    });
-
-    // Live updates
-    const startInput = document.getElementById('start');
-    startInput.addEventListener('input', () => {
-        autoFillFdpCompleted();
-        updateCritical16hr();
-        updateCriticalExtension();
-        markResultsStale();
-    });
-    startInput.addEventListener('change', () => {
-        autoFillFdpCompleted();
-        updateCritical16hr();
-        updateCriticalExtension();
-        markResultsStale();
-    });
-
-    document.getElementById('nfd').addEventListener('input', () => {
-        autoFillFdpCompleted();
-        updateCriticalExtension();
-        markResultsStale();
-    });
-    document.getElementById('nfd').addEventListener('change', () => {
-        autoFillFdpCompleted();
-        updateCriticalExtension();
-        markResultsStale();
-    });
-
-    const restInput = document.getElementById('rest');
-    restInput.addEventListener('input', () => {
-        validateSDRP();
-        updateCriticalExtension();
-        markResultsStale();
-    });
-    restInput.addEventListener('change', () => {
-        validateSDRP();
-        updateCriticalExtension();
-        markResultsStale();
-    });
-    restInput.addEventListener('blur', validateSDRP);
-
-    document.getElementById('commute').addEventListener('change', markResultsStale);
-
-    // Theme toggle
-    document.querySelectorAll('.theme-btn').forEach(btn => {
-        btn.addEventListener('click', () => {
-            document.querySelectorAll('.theme-btn').forEach(b => b.classList.remove('active'));
-            btn.classList.add('active');
-            document.body.classList.toggle('dark-mode', btn.dataset.theme === 'dark');
-        });
-    });
-
-    function resetForm() {
-        document.querySelectorAll('.base-btn').forEach(b => b.classList.remove('active'));
-        document.querySelector('.base-btn[data-value="belmont"]').classList.add('active');
-        selectedBase = 'belmont';
-
-        document.querySelectorAll('.shift-btn').forEach(b => b.classList.remove('active'));
-        document.querySelector('.shift-btn[data-shift="day"]').classList.add('active');
-        selectedShift = 'day';
-
-        document.querySelectorAll('.theme-btn').forEach(b => b.classList.remove('active'));
-        document.querySelector('.theme-btn[data-theme="light"]').classList.add('active');
-        document.body.classList.remove('dark-mode');
-
-        document.getElementById('start').value = '';
-        document.getElementById('end').value = '';
-        document.getElementById('nfd').value = '01:00';
-        document.getElementById('rest').value = '';
-        document.getElementById('commute').checked = true;
-
-        userHasEditedEnd = false;
-        resultsAreFresh = false;
-
-        document.getElementById('resultsArea').style.display = 'none';
-        document.getElementById('resultsArea').classList.remove('calculated', 'stale');
-        document.getElementById('odpBreakdownBtn').style.display = 'none';
-        document.getElementById('placeholder').style.display = 'block';
-        document.getElementById('errorMessage').style.display = 'none';
-
-        updateCritical15hr();
-        updateCritical16hr();
-        updateCriticalExtension();
-    }
-
-    function runLogic() {
-        document.getElementById('errorMessage').style.display = 'none';
-        const baseBtn = document.querySelector('.base-btn.active');
-        const base = baseBtn ? baseBtn.dataset.value : '';
-        const startVal = document.getElementById('start').value;
-        const endVal = document.getElementById('end').value;
-        if (!base || !startVal || !endVal) {
-            showError("Please select a Base and fill in FDP Commenced and FDP Completed.");
-            return;
-        }
-        const start = parseTime(startVal);
-        const end = parseTime(endVal);
-        const nfd = parseTime(document.getElementById('nfd').value);
-        const rest = parseTime(document.getElementById('rest').value);
-        const commute = document.getElementById('commute').checked;
-
+    /* Pure calculation — no DOM access. Given the raw inputs it returns every
+       derived value. Kept separate from runLogic() so it can be unit tested. */
+    function calculateFRMS({ base, shift, start, end, nfd, rest, commute }) {
         let duration = end - start;
         if (duration <= 0) duration += MINUTES_PER_DAY;
 
-        let limitHours = 10;
-        if (start >= 300 && start < 360) limitHours = 11;
-        else if (start >= 360 && start < 420) limitHours = 11.5;
-        else if (start >= 420 && start < 720) limitHours = 12;
-        else if (start >= 720 && start < 900) limitHours = 11;
-        else if (start >= 900 && start < 960) limitHours = 10.5;
-
+        const limitHours = getLimitHours(start);
         const limitMinutes = limitHours * 60;
+
         let fdpLimit = limitMinutes - nfd;
         if (rest >= 120) fdpLimit += rest;
         if (fdpLimit > MAX_FDP_MINUTES) fdpLimit = MAX_FDP_MINUTES;
@@ -751,11 +674,12 @@
         const halfRest = rest / 2;
         const over12 = Math.max(0, (duration - halfRest) - 720);
 
-        // Local night detection: if FDP did not overlap local night
-        const localNightIncluded = !isFDPInLocalNight(start, end);
+        // Local night applies only if the off-duty period (to the next rostered
+        // start of the same base/type) fully contains a 23:00–05:59 block.
+        const localNightIncluded = odpIncludesLocalNight(base, shift, start + duration);
 
         let calcODP;
-        let details = {
+        const details = {
             localNight: localNightIncluded,
             base: 0,
             over12: over12,
@@ -797,27 +721,387 @@
         }
 
         details.total = calcODP;
-        lastODPDetails = details;
 
-        const totalODP = calcODP;
-        const nextStart = end + totalODP;
-        const projectedFdpEnd = start + fdpLimit;
+        return {
+            duration,
+            limitHours,
+            limitMinutes,
+            fdpLimit,
+            exceedance,
+            over12,
+            odp: calcODP,
+            details,
+            projectedFdpEnd: start + fdpLimit,
+            nextStart: end + calcODP
+        };
+    }
 
-        const fdpLabel = document.getElementById('fdpLabel');
-        if (fdpLimit <= limitMinutes) {
-            fdpLabel.textContent = 'FDP Remaining:';
+    // ---- Preferences persistence ----
+    function savePrefs() {
+        try {
+            const prefs = {
+                base: selectedBase,
+                shift: selectedShift,
+                theme: document.body.classList.contains('dark-mode') ? 'dark' : 'light',
+                commute: document.getElementById('commute').checked,
+                nfd: readDuration('nfdH', 'nfdM')
+            };
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(prefs));
+        } catch (e) { /* storage unavailable — ignore */ }
+    }
+
+    function loadPrefs() {
+        try {
+            const raw = localStorage.getItem(STORAGE_KEY);
+            if (!raw) return;
+            const prefs = JSON.parse(raw);
+
+            if (prefs.base && nominalStarts[prefs.base]) selectedBase = prefs.base;
+            if (prefs.shift === 'day' || prefs.shift === 'night') selectedShift = prefs.shift;
+
+            document.querySelectorAll('.base-btn').forEach(b => b.classList.toggle('active', b.dataset.value === selectedBase));
+            document.querySelectorAll('.shift-btn').forEach(b => b.classList.toggle('active', b.dataset.shift === selectedShift));
+
+            if (prefs.theme === 'dark') {
+                document.body.classList.add('dark-mode');
+                document.querySelectorAll('.theme-btn').forEach(b => b.classList.toggle('active', b.dataset.theme === 'dark'));
+            }
+
+            if (typeof prefs.commute === 'boolean') document.getElementById('commute').checked = prefs.commute;
+
+            if (typeof prefs.nfd === 'number') {
+                document.getElementById('nfdH').value = Math.floor(prefs.nfd / 60);
+                document.getElementById('nfdM').value = prefs.nfd % 60;
+            }
+        } catch (e) { /* corrupt/unavailable — ignore */ }
+    }
+
+    function syncPressed(selector) {
+        document.querySelectorAll(selector).forEach(b =>
+            b.setAttribute('aria-pressed', b.classList.contains('active') ? 'true' : 'false'));
+    }
+
+    // Mark results as stale
+    function markResultsStale() {
+        if (resultsAreFresh) {
+            const resultsBox = document.getElementById('resultsArea');
+            resultsBox.classList.remove('calculated');
+            resultsBox.classList.add('stale');
+            document.getElementById('odpBreakdownBtn').style.display = 'none';
+            document.getElementById('copyBtn').style.display = 'none';
+            resultsAreFresh = false;
+        }
+    }
+
+    // Show ODP breakdown modal
+    function showODPBreakdown() {
+        const content = document.getElementById('odpBreakdownContent');
+        let html = `
+            <div class="odp-breakdown-row"><span>Local Night Included in ODP:</span> <span class="odp-breakdown-val">${lastODPDetails.localNight ? 'Yes' : 'No'}</span></div>
+            <div class="odp-breakdown-row"><span>Base ODP:</span> <span class="odp-breakdown-val">${fmt(lastODPDetails.base)}</span></div>
+            <div class="odp-breakdown-row"><span>Over 12h Addition:</span> <span class="odp-breakdown-val">${fmt(lastODPDetails.over12)}</span></div>
+        `;
+        if (lastODPDetails.penalty > 0) {
+            html += `<div class="odp-breakdown-row"><span>Extension Penalty:</span> <span class="odp-breakdown-val">${fmt(lastODPDetails.penalty)}</span></div>`;
+            if (lastODPDetails.extensionBase8) {
+                html += `<div class="odp-breakdown-row"><span>(Penalty applied to 8hr base due to local night)</span> <span></span></div>`;
+            }
+        }
+        if (lastODPDetails.floorApplied) {
+            html += `<div class="odp-breakdown-row"><span>Floor to 10h (commute):</span> <span class="odp-breakdown-val">Applied</span></div>`;
+        }
+        html += `<div class="odp-breakdown-row"><span><strong>Total ODP:</strong></span> <span class="odp-breakdown-val"><strong>${fmt(lastODPDetails.total)}</strong></span></div>`;
+        content.innerHTML = html;
+        document.getElementById('odpModal').style.display = 'flex';
+    }
+
+    // Copy results to clipboard
+    function copyResults() {
+        const text = [
+            'WHRS FRMS Calculator Result',
+            '----------------------------',
+            'Base: ' + selectedBase.charAt(0).toUpperCase() + selectedBase.slice(1),
+            'Shift: ' + (selectedShift === 'day' ? 'Day' : 'Night'),
+            'FDP Commenced: ' + document.getElementById('start').value,
+            'FDP Completed: ' + document.getElementById('end').value,
+            '',
+            'Earliest Next Start: ' + document.getElementById('outNext').textContent + ' ' + document.getElementById('outDay').textContent,
+            'Max FDP: ' + document.getElementById('outMax').textContent,
+            document.getElementById('fdpLabel').textContent + ' ' + document.getElementById('outLimit').textContent,
+            'Latest Permitted End: ' + document.getElementById('outFdpEnd').textContent,
+            'Actual FDP End: ' + document.getElementById('outActualEnd').textContent,
+            'Exceedance: ' + document.getElementById('outExc').textContent,
+            'ODP (Hrs): ' + document.getElementById('outODP').textContent
+        ].join('\n');
+
+        const done = () => {
+            const btn = document.getElementById('copyBtn');
+            const original = btn.textContent;
+            btn.textContent = 'Copied!';
+            setTimeout(() => { btn.textContent = original; }, 1500);
+        };
+
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(text).then(done).catch(() => window.prompt('Copy the result below:', text));
         } else {
-            fdpLabel.textContent = 'FDP Extended:';
+            window.prompt('Copy the result below:', text);
+        }
+    }
+
+    // Close modal on outside click
+    window.onclick = function(event) {
+        const modal = document.getElementById('odpModal');
+        if (event.target == modal) {
+            modal.style.display = 'none';
+        }
+    }
+
+    // SDRP hint: an SDRP under 2h simply doesn't count toward an extension.
+    // We flag it inline rather than clearing the field, so the user can still
+    // type/step their way up to a valid value.
+    function updateSDRPWarning() {
+        const restMins = readDuration('restH', 'restM');
+        document.getElementById('sdrpWarning').style.display = (restMins > 0 && restMins < 120) ? 'block' : 'none';
+    }
+
+    // Update Box 1 (uses NOMINAL base start — intentional)
+    function updateCritical15hr() {
+        if (!selectedBase) return;
+        const shiftStart = nominalStarts[selectedBase][selectedShift];
+        const fifteenHoursLater = shiftStart + 900;
+        document.getElementById('crit15hr').textContent = clock(fifteenHoursLater);
+    }
+
+    // Update Box 3 (uses ACTUAL start — intentional)
+    function updateCritical16hr() {
+        const startInput = document.getElementById('start').value;
+        if (!startInput) {
+            document.getElementById('crit16hr').textContent = '--:--';
+            return;
+        }
+        const startMins = parseTime(startInput);
+        const sixteenHoursLater = startMins + 960;
+        document.getElementById('crit16hr').textContent = clock(sixteenHoursLater);
+    }
+
+    // Update Box 2
+    function updateCriticalExtension() {
+        const startInput = document.getElementById('start').value;
+        if (!startInput) {
+            document.getElementById('critExtension').textContent = '--:--';
+            return;
+        }
+        const startMins = parseTime(startInput);
+        const nfd = readDuration('nfdH', 'nfdM');
+        const rest = readDuration('restH', 'restM');
+
+        let fdpLimit = getLimitHours(startMins) * 60 - nfd;
+        if (rest >= 120) fdpLimit += rest;
+        if (fdpLimit > MAX_FDP_MINUTES) fdpLimit = MAX_FDP_MINUTES;
+
+        const extensionTime = startMins + fdpLimit;
+        document.getElementById('critExtension').textContent = clock(extensionTime);
+    }
+
+    // Auto-fill FDP Completed
+    function autoFillFdpCompleted() {
+        if (userHasEditedEnd) return;
+
+        const startInput = document.getElementById('start').value;
+        if (!startInput) {
+            document.getElementById('end').value = '';
+            return;
+        }
+        const startMins = parseTime(startInput);
+        const nfd = readDuration('nfdH', 'nfdM');
+
+        const maxFdpMinutes = getLimitHours(startMins) * 60;
+        const projectedEnd = startMins + maxFdpMinutes - nfd;
+        document.getElementById('end').value = clock(projectedEnd);
+    }
+
+    // Detect manual edit of FDP Completed. If the user clears it, re-arm auto-fill.
+    document.getElementById('end').addEventListener('input', (e) => {
+        if (e.target.value === '') {
+            userHasEditedEnd = false;
+            autoFillFdpCompleted();
+        } else {
+            userHasEditedEnd = true;
+        }
+        markResultsStale();
+    });
+
+    // Base & Shift selection
+    document.querySelectorAll('.base-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            document.querySelectorAll('.base-btn').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            selectedBase = btn.dataset.value;
+            syncPressed('.base-btn');
+            updateCritical15hr();
+            markResultsStale();
+            savePrefs();
+        });
+    });
+
+    document.querySelectorAll('.shift-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            document.querySelectorAll('.shift-btn').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            selectedShift = btn.dataset.shift;
+            syncPressed('.shift-btn');
+            updateCritical15hr();
+            markResultsStale();
+            savePrefs();
+        });
+    });
+
+    // Live updates
+    const startInput = document.getElementById('start');
+    startInput.addEventListener('input', () => {
+        autoFillFdpCompleted();
+        updateCritical16hr();
+        updateCriticalExtension();
+        markResultsStale();
+    });
+    startInput.addEventListener('change', () => {
+        autoFillFdpCompleted();
+        updateCritical16hr();
+        updateCriticalExtension();
+        markResultsStale();
+    });
+
+    ['nfdH', 'nfdM'].forEach(id => {
+        const el = document.getElementById(id);
+        el.addEventListener('input', () => {
+            autoFillFdpCompleted();
+            updateCriticalExtension();
+            markResultsStale();
+            savePrefs();
+        });
+        el.addEventListener('change', () => {
+            autoFillFdpCompleted();
+            updateCriticalExtension();
+            markResultsStale();
+            savePrefs();
+        });
+    });
+
+    ['restH', 'restM'].forEach(id => {
+        const el = document.getElementById(id);
+        const onEdit = () => {
+            updateSDRPWarning();
+            updateCriticalExtension();
+            markResultsStale();
+        };
+        el.addEventListener('input', onEdit);
+        el.addEventListener('change', onEdit);
+    });
+
+    document.getElementById('commute').addEventListener('change', () => {
+        markResultsStale();
+        savePrefs();
+    });
+
+    // Theme toggle
+    document.querySelectorAll('.theme-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            document.querySelectorAll('.theme-btn').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            document.body.classList.toggle('dark-mode', btn.dataset.theme === 'dark');
+            syncPressed('.theme-btn');
+            savePrefs();
+        });
+    });
+
+    function resetForm() {
+        try { localStorage.removeItem(STORAGE_KEY); } catch (e) { /* ignore */ }
+
+        document.querySelectorAll('.base-btn').forEach(b => b.classList.remove('active'));
+        document.querySelector('.base-btn[data-value="belmont"]').classList.add('active');
+        selectedBase = 'belmont';
+
+        document.querySelectorAll('.shift-btn').forEach(b => b.classList.remove('active'));
+        document.querySelector('.shift-btn[data-shift="day"]').classList.add('active');
+        selectedShift = 'day';
+
+        document.querySelectorAll('.theme-btn').forEach(b => b.classList.remove('active'));
+        document.querySelector('.theme-btn[data-theme="light"]').classList.add('active');
+        document.body.classList.remove('dark-mode');
+
+        document.getElementById('start').value = '';
+        document.getElementById('end').value = '';
+        document.getElementById('nfdH').value = '1';
+        document.getElementById('nfdM').value = '0';
+        document.getElementById('restH').value = '';
+        document.getElementById('restM').value = '';
+        document.getElementById('sdrpWarning').style.display = 'none';
+        document.getElementById('commute').checked = true;
+
+        syncPressed('.base-btn');
+        syncPressed('.shift-btn');
+        syncPressed('.theme-btn');
+
+        userHasEditedEnd = false;
+        resultsAreFresh = false;
+
+        document.getElementById('resultsArea').style.display = 'none';
+        document.getElementById('resultsArea').classList.remove('calculated', 'stale');
+        document.getElementById('odpBreakdownBtn').style.display = 'none';
+        document.getElementById('copyBtn').style.display = 'none';
+        document.getElementById('placeholder').style.display = 'block';
+        document.getElementById('errorMessage').style.display = 'none';
+
+        updateCritical15hr();
+        updateCritical16hr();
+        updateCriticalExtension();
+    }
+
+    function showError(msg) {
+        const err = document.getElementById('errorMessage');
+        err.textContent = msg;
+        err.style.display = 'block';
+    }
+
+    function runLogic() {
+        document.getElementById('errorMessage').style.display = 'none';
+        const baseBtn = document.querySelector('.base-btn.active');
+        const base = baseBtn ? baseBtn.dataset.value : '';
+        const startVal = document.getElementById('start').value;
+        const endVal = document.getElementById('end').value;
+        if (!base || !startVal || !endVal) {
+            showError("Please select a Base and fill in FDP Commenced and FDP Completed.");
+            return;
+        }
+        const start = parseTime(startVal);
+        const end = parseTime(endVal);
+
+        if (start === end) {
+            showError("FDP Commenced and FDP Completed cannot be the same time.");
+            return;
         }
 
-        document.getElementById('outMax').textContent = fmt(limitMinutes);
-        document.getElementById('outLimit').textContent = fmt(fdpLimit);
-        document.getElementById('outFdpEnd').textContent = clock(projectedFdpEnd);
-        document.getElementById('outExc').textContent = exceedance === 0 ? '00:00' : fmt(exceedance);
-        document.getElementById('outODP').textContent = fmt(totalODP);
-        document.getElementById('outNext').textContent = clock(nextStart);
-        document.getElementById('outDay').textContent = nextStart >= 2880 ? '(Two Days Later)' :
-                                                    nextStart >= MINUTES_PER_DAY ? '(Next Day)' : '(Today)';
+        const nfd = readDuration('nfdH', 'nfdM');
+        const rest = readDuration('restH', 'restM');
+        const commute = document.getElementById('commute').checked;
+
+        const shift = document.querySelector('.shift-btn.active').dataset.shift;
+        const r = calculateFRMS({ base, shift, start, end, nfd, rest, commute });
+
+        lastODPDetails = r.details;
+
+        const fdpLabel = document.getElementById('fdpLabel');
+        fdpLabel.textContent = (r.fdpLimit <= r.limitMinutes) ? 'Max FDP (Remaining):' : 'Max FDP (Extended):';
+
+        document.getElementById('outMax').textContent = fmt(r.limitMinutes) + ' hrs';
+        document.getElementById('outLimit').textContent = fmt(r.fdpLimit) + ' hrs';
+        document.getElementById('outFdpEnd').textContent = clock(r.projectedFdpEnd);
+        document.getElementById('outActualEnd').textContent = endVal;
+        document.getElementById('outExc').textContent = r.exceedance === 0 ? '00:00' : fmt(r.exceedance);
+        document.getElementById('outODP').textContent = fmt(r.odp);
+        document.getElementById('outNext').textContent = clock(r.nextStart);
+        document.getElementById('outDay').textContent = r.nextStart >= 2880 ? '(Two Days Later)' :
+                                                    r.nextStart >= MINUTES_PER_DAY ? '(Next Day)' : '(Today)';
 
         const resultsBox = document.getElementById('resultsArea');
         resultsBox.classList.remove('stale');
@@ -825,24 +1109,88 @@
         resultsBox.style.display = 'block';
         document.getElementById('placeholder').style.display = 'none';
         document.getElementById('odpBreakdownBtn').style.display = 'block';
+        document.getElementById('copyBtn').style.display = 'block';
         resultsAreFresh = true;
+    }
+
+    /* Lightweight self-tests for the safety-relevant math.
+       Open the app with ?selftest appended to the URL to run them.
+       Results are logged to the console and shown in an alert. */
+    function runSelfTest() {
+        const results = [];
+        const approx = (a, b) => Math.abs(a - b) < 1e-9;
+        const check = (name, actual, expected) => {
+            const pass = approx(actual, expected);
+            results.push((pass ? 'PASS' : 'FAIL') + ': ' + name + ' (got ' + actual + ', expected ' + expected + ')');
+        };
+
+        // getLimitHours bands
+        check('limit @ 04:59 (299)', getLimitHours(299), 10);
+        check('limit @ 05:00 (300)', getLimitHours(300), 11);
+        check('limit @ 06:00 (360)', getLimitHours(360), 11.5);
+        check('limit @ 07:00 (420)', getLimitHours(420), 12);
+        check('limit @ 12:00 (720)', getLimitHours(720), 11);
+        check('limit @ 15:00 (900)', getLimitHours(900), 10.5);
+        check('limit @ 16:00 (960)', getLimitHours(960), 10);
+
+        // Scenario A: Belmont day 07:00–18:00, NFD 1h, no SDRP, commute.
+        // Rest 18:00 -> next day 07:00 fully contains 23:00–05:59 -> 10h base (commute).
+        const a = calculateFRMS({ base: 'belmont', shift: 'day', start: 420, end: 1080, nfd: 60, rest: 0, commute: true });
+        check('A localNight', a.details.localNight ? 1 : 0, 1);
+        check('A fdpLimit', a.fdpLimit, 660);
+        check('A exceedance', a.exceedance, 0);
+        check('A odp', a.odp, 600);
+        check('A nextStart', a.nextStart, 1680);
+
+        // Scenario B: Belmont day 07:00–19:00 (exceedance 60), NFD 1h, commute -> penalty 120, odp 600
+        const b = calculateFRMS({ base: 'belmont', shift: 'day', start: 420, end: 1140, nfd: 60, rest: 0, commute: true });
+        check('B exceedance', b.exceedance, 60);
+        check('B penalty', b.details.penalty, 120);
+        check('B odp', b.odp, 600);
+
+        // Scenario C: Belmont day, no commute, short day -> local night included -> 8h base
+        const c = calculateFRMS({ base: 'belmont', shift: 'day', start: 420, end: 900, nfd: 60, rest: 0, commute: false });
+        check('C localNight', c.details.localNight ? 1 : 0, 1);
+        check('C odp', c.odp, 480);
+
+        // Scenario D: Belmont night 19:00–03:00, no commute. Rest 03:00 -> next day 19:00
+        // only catches 03:00–05:59, NOT the full 23:00–05:59 block -> no local night -> 10h base.
+        const d = calculateFRMS({ base: 'belmont', shift: 'night', start: 1140, end: 180, nfd: 0, rest: 0, commute: false });
+        check('D localNight', d.details.localNight ? 1 : 0, 0);
+        check('D odp', d.odp, 600);
+
+        const failed = results.filter(r => r.startsWith('FAIL'));
+        results.forEach(r => (r.startsWith('FAIL') ? console.error(r) : console.log(r)));
+        const summary = failed.length === 0
+            ? ('All ' + results.length + ' self-tests passed.')
+            : (failed.length + ' of ' + results.length + ' self-tests FAILED — see console.');
+        console.log(summary);
+        alert(summary);
     }
 
     // Set defaults on page load
     window.onload = function() {
-        document.querySelector('.base-btn[data-value="belmont"]').classList.add('active');
-        document.querySelector('.shift-btn[data-shift="day"]').classList.add('active');
-        document.querySelector('.theme-btn[data-theme="light"]').classList.add('active');
-        document.getElementById('nfd').value = '01:00';
-        document.getElementById('rest').value = '';
-        selectedBase = 'belmont';
-        selectedShift = 'day';
+        loadPrefs();
+        syncPressed('.base-btn');
+        syncPressed('.shift-btn');
+        syncPressed('.theme-btn');
         userHasEditedEnd = false;
         resultsAreFresh = false;
         updateCritical15hr();
         updateCritical16hr();
         updateCriticalExtension();
+
+        if (window.location.search.indexOf('selftest') !== -1) {
+            runSelfTest();
+        }
     };
+
+    // Register service worker for offline / installable use (served over http(s) only)
+    if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+            navigator.serviceWorker.register('./sw.js').catch(() => { /* not served / unsupported */ });
+        });
+    }
 </script>
 </body>
 </html>
