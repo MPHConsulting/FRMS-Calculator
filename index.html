@@ -615,6 +615,8 @@
         return `${h}:${m}`;
     };
     const clock = (mins) => fmt(((mins % MINUTES_PER_DAY) + MINUTES_PER_DAY) % MINUTES_PER_DAY);
+    // Round a duration/time up to the next whole 10 minutes (conservative for rest values)
+    const roundUp10 = (mins) => Math.ceil(mins / 10) * 10;
 
     // Read a duration (in minutes) from an hours field + minutes field
     function readDuration(hId, mId) {
@@ -824,6 +826,8 @@
             'Shift: ' + (selectedShift === 'day' ? 'Day' : 'Night'),
             'FDP Commenced: ' + document.getElementById('start').value,
             'FDP Completed: ' + document.getElementById('end').value,
+            'NFD: ' + fmt(readDuration('nfdH', 'nfdM')),
+            'SDRP: ' + fmt(readDuration('restH', 'restM')),
             '',
             'Earliest Next Start: ' + document.getElementById('outNext').textContent + ' ' + document.getElementById('outDay').textContent,
             'Max FDP: ' + document.getElementById('outMax').textContent,
@@ -1098,10 +1102,11 @@
         document.getElementById('outFdpEnd').textContent = clock(r.projectedFdpEnd);
         document.getElementById('outActualEnd').textContent = endVal;
         document.getElementById('outExc').textContent = r.exceedance === 0 ? '00:00' : fmt(r.exceedance);
-        document.getElementById('outODP').textContent = fmt(r.odp);
-        document.getElementById('outNext').textContent = clock(r.nextStart);
-        document.getElementById('outDay').textContent = r.nextStart >= 2880 ? '(Two Days Later)' :
-                                                    r.nextStart >= MINUTES_PER_DAY ? '(Next Day)' : '(Today)';
+        const roundedNext = roundUp10(r.nextStart);
+        document.getElementById('outODP').textContent = fmt(roundUp10(r.odp));
+        document.getElementById('outNext').textContent = clock(roundedNext);
+        document.getElementById('outDay').textContent = roundedNext >= 2880 ? '(Two Days Later)' :
+                                                    roundedNext >= MINUTES_PER_DAY ? '(Next Day)' : '(Today)';
 
         const resultsBox = document.getElementById('resultsArea');
         resultsBox.classList.remove('stale');
