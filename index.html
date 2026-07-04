@@ -67,6 +67,23 @@
             margin-bottom: 20px;
         }
         .status { color: #28a745; font-weight: bold; font-size: 0.9rem; }
+        .header-titles { display: flex; flex-direction: column; gap: 2px; }
+        .header-controls { display: flex; align-items: center; gap: 10px; }
+        .theme-group { margin-top: 0; gap: 6px; }
+        .theme-group .btn-toggle { min-width: 0; flex: 0 0 auto; padding: 9px 12px; font-size: 18px; line-height: 1; }
+        .btn-reset {
+            background: #6c757d;
+            color: #fff;
+            border: none;
+            padding: 11px 18px;
+            font-size: 15px;
+            font-weight: 600;
+            border-radius: 10px;
+            cursor: pointer;
+            white-space: nowrap;
+            touch-action: manipulation;
+        }
+        .btn-reset:hover { background: #545b62; }
         .card {
             background: var(--card-bg);
             padding: 25px;
@@ -282,10 +299,6 @@
             background: var(--result-bg-green);
             color: var(--result-text);
         }
-        .result-box.stale {
-            background: var(--result-bg-white);
-            color: var(--text-color);
-        }
 
         .error-message {
             background: #f8d7da;
@@ -387,11 +400,12 @@
             .header {
                 flex-direction: column;
                 align-items: flex-start;
-                gap: 4px;
+                gap: 10px;
                 margin-bottom: 14px;
             }
             .header h1 { font-size: 1.25rem; }
             .status { font-size: 0.8rem; }
+            .header-controls { width: 100%; justify-content: space-between; }
             .card {
                 padding: 16px;
                 margin-bottom: 14px;
@@ -450,8 +464,17 @@
 <body>
 <div class="container">
     <div class="header">
-        <h1 style="margin:0; font-size:1.5rem;">WHRS FRMS Calculator</h1>
-        <span class="status">✓ System Online</span>
+        <div class="header-titles">
+            <h1 style="margin:0; font-size:1.5rem;">WHRS FRMS Calculator</h1>
+            <span class="status">✓ System Online</span>
+        </div>
+        <div class="header-controls">
+            <div class="button-group theme-group" role="group" aria-label="Theme preference">
+                <button type="button" class="btn-toggle theme-btn active" data-theme="light" aria-pressed="true" aria-label="Light mode" title="Light mode">☀️</button>
+                <button type="button" class="btn-toggle theme-btn" data-theme="dark" aria-pressed="false" aria-label="Dark mode" title="Dark mode">🌙</button>
+            </div>
+            <button type="button" class="btn-reset" onclick="resetForm()">Reset</button>
+        </div>
     </div>
 
     <div class="card">
@@ -508,13 +531,6 @@
                 Commute to home required?
             </label>
         </div>
-        <label id="themeLabel">Theme Preference</label>
-        <div class="button-group" role="group" aria-labelledby="themeLabel">
-            <button type="button" class="btn-toggle theme-btn active" data-theme="light" aria-pressed="true">☀️ Light Mode</button>
-            <button type="button" class="btn-toggle theme-btn" data-theme="dark" aria-pressed="false">🌙 Dark Mode</button>
-        </div>
-        <button class="btn" onclick="runLogic()">CALCULATE RESULTS</button>
-        <button class="btn btn-secondary" onclick="resetForm()">RESET FORM</button>
     </div>
 
     <div class="card">
@@ -602,7 +618,6 @@
     let selectedBase = 'belmont';
     let selectedShift = 'day';
     let userHasEditedEnd = false;
-    let resultsAreFresh = false;
 
     // Store last calculation details for breakdown
     let lastODPDetails = {};
@@ -659,7 +674,7 @@
     }
 
     /* Pure calculation — no DOM access. Given the raw inputs it returns every
-       derived value. Kept separate from runLogic() so it can be unit tested. */
+       derived value. Kept separate from autoCalc() so it can be unit tested. */
     function calculateFRMS({ base, shift, start, end, nfd, rest, commute }) {
         let duration = end - start;
         if (duration <= 0) duration += MINUTES_PER_DAY;
@@ -781,18 +796,6 @@
     function syncPressed(selector) {
         document.querySelectorAll(selector).forEach(b =>
             b.setAttribute('aria-pressed', b.classList.contains('active') ? 'true' : 'false'));
-    }
-
-    // Mark results as stale
-    function markResultsStale() {
-        if (resultsAreFresh) {
-            const resultsBox = document.getElementById('resultsArea');
-            resultsBox.classList.remove('calculated');
-            resultsBox.classList.add('stale');
-            document.getElementById('odpBreakdownBtn').style.display = 'none';
-            document.getElementById('copyBtn').style.display = 'none';
-            resultsAreFresh = false;
-        }
     }
 
     // Show ODP breakdown modal
@@ -932,7 +935,7 @@
         } else {
             userHasEditedEnd = true;
         }
-        markResultsStale();
+        autoCalc();
     });
 
     // Base & Shift selection
@@ -943,7 +946,7 @@
             selectedBase = btn.dataset.value;
             syncPressed('.base-btn');
             updateCritical15hr();
-            markResultsStale();
+            autoCalc();
             savePrefs();
         });
     });
@@ -955,7 +958,7 @@
             selectedShift = btn.dataset.shift;
             syncPressed('.shift-btn');
             updateCritical15hr();
-            markResultsStale();
+            autoCalc();
             savePrefs();
         });
     });
@@ -966,13 +969,13 @@
         autoFillFdpCompleted();
         updateCritical16hr();
         updateCriticalExtension();
-        markResultsStale();
+        autoCalc();
     });
     startInput.addEventListener('change', () => {
         autoFillFdpCompleted();
         updateCritical16hr();
         updateCriticalExtension();
-        markResultsStale();
+        autoCalc();
     });
 
     ['nfdH', 'nfdM'].forEach(id => {
@@ -980,13 +983,13 @@
         el.addEventListener('input', () => {
             autoFillFdpCompleted();
             updateCriticalExtension();
-            markResultsStale();
+            autoCalc();
             savePrefs();
         });
         el.addEventListener('change', () => {
             autoFillFdpCompleted();
             updateCriticalExtension();
-            markResultsStale();
+            autoCalc();
             savePrefs();
         });
     });
@@ -996,14 +999,14 @@
         const onEdit = () => {
             updateSDRPWarning();
             updateCriticalExtension();
-            markResultsStale();
+            autoCalc();
         };
         el.addEventListener('input', onEdit);
         el.addEventListener('change', onEdit);
     });
 
     document.getElementById('commute').addEventListener('change', () => {
-        markResultsStale();
+        autoCalc();
         savePrefs();
     });
 
@@ -1047,51 +1050,45 @@
         syncPressed('.theme-btn');
 
         userHasEditedEnd = false;
-        resultsAreFresh = false;
 
-        document.getElementById('resultsArea').style.display = 'none';
-        document.getElementById('resultsArea').classList.remove('calculated', 'stale');
-        document.getElementById('odpBreakdownBtn').style.display = 'none';
-        document.getElementById('copyBtn').style.display = 'none';
-        document.getElementById('placeholder').style.display = 'block';
-        document.getElementById('errorMessage').style.display = 'none';
+        showPlaceholder();
 
         updateCritical15hr();
         updateCritical16hr();
         updateCriticalExtension();
     }
 
-    function showError(msg) {
-        const err = document.getElementById('errorMessage');
-        err.textContent = msg;
-        err.style.display = 'block';
+    function showPlaceholder() {
+        const resultsBox = document.getElementById('resultsArea');
+        resultsBox.style.display = 'none';
+        resultsBox.classList.remove('calculated');
+        document.getElementById('odpBreakdownBtn').style.display = 'none';
+        document.getElementById('copyBtn').style.display = 'none';
+        document.getElementById('placeholder').style.display = 'block';
     }
 
-    function runLogic() {
-        document.getElementById('errorMessage').style.display = 'none';
+    // Auto-calculate on every input change. When the form is incomplete or
+    // invalid (missing base/times, or identical start/end) we quietly show the
+    // placeholder rather than an error.
+    function autoCalc() {
         const baseBtn = document.querySelector('.base-btn.active');
         const base = baseBtn ? baseBtn.dataset.value : '';
         const startVal = document.getElementById('start').value;
         const endVal = document.getElementById('end').value;
-        if (!base || !startVal || !endVal) {
-            showError("Please select a Base and fill in FDP Commenced and FDP Completed.");
+
+        if (!base || !startVal || !endVal || startVal === endVal) {
+            showPlaceholder();
             return;
         }
+
         const start = parseTime(startVal);
         const end = parseTime(endVal);
-
-        if (start === end) {
-            showError("FDP Commenced and FDP Completed cannot be the same time.");
-            return;
-        }
-
         const nfd = readDuration('nfdH', 'nfdM');
         const rest = readDuration('restH', 'restM');
         const commute = document.getElementById('commute').checked;
-
         const shift = document.querySelector('.shift-btn.active').dataset.shift;
-        const r = calculateFRMS({ base, shift, start, end, nfd, rest, commute });
 
+        const r = calculateFRMS({ base, shift, start, end, nfd, rest, commute });
         lastODPDetails = r.details;
 
         const fdpLabel = document.getElementById('fdpLabel');
@@ -1109,13 +1106,11 @@
                                                     roundedNext >= MINUTES_PER_DAY ? '(Next Day)' : '(Today)';
 
         const resultsBox = document.getElementById('resultsArea');
-        resultsBox.classList.remove('stale');
         resultsBox.classList.add('calculated');
         resultsBox.style.display = 'block';
         document.getElementById('placeholder').style.display = 'none';
         document.getElementById('odpBreakdownBtn').style.display = 'block';
         document.getElementById('copyBtn').style.display = 'block';
-        resultsAreFresh = true;
     }
 
     /* Lightweight self-tests for the safety-relevant math.
@@ -1180,10 +1175,10 @@
         syncPressed('.shift-btn');
         syncPressed('.theme-btn');
         userHasEditedEnd = false;
-        resultsAreFresh = false;
         updateCritical15hr();
         updateCritical16hr();
         updateCriticalExtension();
+        autoCalc();
 
         if (window.location.search.indexOf('selftest') !== -1) {
             runSelfTest();

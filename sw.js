@@ -1,7 +1,7 @@
 /* Service worker for the WHRS FRMS Calculator.
    Bump CACHE (e.g. frms-v2) whenever index.html or assets change so
    clients pick up the new version. */
-const CACHE = 'frms-v2';
+const CACHE = 'frms-v3';
 const ASSETS = [
     './',
     './index.html',
